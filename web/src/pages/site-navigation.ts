@@ -1,4 +1,3 @@
-import Logo from "@/components/Logo";
 import { FaCompactDisc, FaFlag, FaVideo } from "react-icons/fa";
 import { LuConstruction } from "react-icons/lu";
 
