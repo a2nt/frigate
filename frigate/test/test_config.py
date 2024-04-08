@@ -9,7 +9,6 @@ from pydantic import ValidationError
 from frigate.config import BirdseyeModeEnum, FrigateConfig
 from frigate.const import MODEL_CACHE_DIR
 from frigate.detectors import DetectorTypeEnum
-from frigate.plus import PlusApi
 from frigate.util.builtin import deep_merge, load_config_with_no_duplicates
 
 

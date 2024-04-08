@@ -13,7 +13,6 @@ from playhouse.sqliteq import SqliteQueueDatabase
 from frigate.api.app import create_app
 from frigate.config import FrigateConfig
 from frigate.models import Event, Recordings
-from frigate.plus import PlusApi
 from frigate.stats.emitter import StatsEmitter
 from frigate.test.const import TEST_DB, TEST_DB_CLEANUPS
 

@@ -39,7 +39,7 @@ from frigate.ffmpeg_presets import (
     parse_preset_input,
     parse_preset_output_record,
 )
-from frigate.plus import PlusApi
+
 from frigate.util.builtin import (
     deep_merge,
     escape_special_characters,
@@ -1180,7 +1180,7 @@ class FrigateConfig(FrigateBaseModel):
         title="Global timestamp style configuration.",
     )
 
-    def runtime_config(self, plus_api: PlusApi = None) -> FrigateConfig:
+    def runtime_config(self) -> FrigateConfig:
         """Merge camera config with globals."""
         config = self.model_copy(deep=True)
 
@@ -1369,7 +1369,6 @@ class FrigateConfig(FrigateBaseModel):
             enabled_labels.update(camera.objects.track)
 
         config.model.create_colormap(sorted(enabled_labels))
-        config.model.check_and_load_plus_model(plus_api)
 
         for key, detector in config.detectors.items():
             adapter = TypeAdapter(DetectorConfig)
@@ -1406,9 +1405,6 @@ class FrigateConfig(FrigateBaseModel):
                     merged_model["path"] = "/edgetpu_model.tflite"
 
             detector_config.model = ModelConfig.model_validate(merged_model)
-            detector_config.model.check_and_load_plus_model(
-                plus_api, detector_config.type
-            )
             detector_config.model.compute_model_hash()
             config.detectors[key] = detector_config
 

@@ -22,7 +22,6 @@ from frigate.config import FrigateConfig
 from frigate.const import CONFIG_DIR
 from frigate.events.external import ExternalEventProcessor
 from frigate.models import Event, Timeline
-from frigate.plus import PlusApi
 from frigate.ptz.onvif import OnvifController
 from frigate.stats.emitter import StatsEmitter
 from frigate.storage import StorageMaintainer
