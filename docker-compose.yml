@@ -26,7 +26,10 @@ services:
       YOLO_MODELS: yolov7-320
     devices:
       - /dev/bus/usb:/dev/bus/usb
-      # - /dev/dri:/dev/dri # for intel hwaccel, needs to be updated for your hardware
+      - /dev/dri:/dev/dri
+      - /dev/dma_heap:/dev/dma_heap
+      - /dev/rga:/dev/rga
+      - /dev/mpp_service:/dev/mpp_service
     volumes:
       - .:/workspace/frigate:cached
       - ./web/dist:/opt/frigate/web:cached
@@ -34,6 +37,7 @@ services:
       - ./config:/config
       - ./debug:/media/frigate
       - /dev/bus/usb:/dev/bus/usb
+      - ./librknnrt.so.1.6.0:/usr/lib/librknnrt.so
   mqtt:
     container_name: mqtt
     image: eclipse-mosquitto:1.6
