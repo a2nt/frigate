@@ -75,13 +75,13 @@ class Rknn(DetectionApi):
 
         if self.model_path in yolov8_suffix:
             if self.model_path == "default-yolov8n":
-                self.model_path = "/models/rknn/yolov8n-320x320-{soc}.rknn".format(
+                self.model_path = "/models/rknn/default-yolov8m-{soc}.rknn".format(
                     soc=soc
                 )
             else:
                 model_suffix = yolov8_suffix[self.model_path]
                 self.model_path = (
-                    "/config/model_cache/rknn/yolov8{suffix}-320x320-{soc}.rknn".format(
+                    "/config/model_cache/rknn/default-yolov8m-{soc}.rknn".format(
                         suffix=model_suffix, soc=soc
                     )
                 )
@@ -92,7 +92,7 @@ class Rknn(DetectionApi):
                         "Downloading yolov8{suffix} model.".format(suffix=model_suffix)
                     )
                     urllib.request.urlretrieve(
-                        "https://github.com/MarcA711/rknn-models/releases/download/v1.5.2-{soc}/yolov8{suffix}-320x320-{soc}.rknn".format(
+                        "https://github.com/MarcA711/rknn-models/releases/download/v1.6.0-yolov8-default/default-yolov8m-{soc}.rknn".format(
                             soc=soc, suffix=model_suffix
                         ),
                         self.model_path,
@@ -146,7 +146,7 @@ class Rknn(DetectionApi):
         detections: array with shape (20, 6) with 20 rows of (class, confidence, y_min, x_min, y_max, x_max)
         """
 
-        results = np.transpose(results[0, :, :, 0])  # array shape (2100, 84)
+        results = np.transpose(results[0, :, :])  # array shape (2100, 84)
         scores = np.max(
             results[:, 4:], axis=1
         )  # array shape (2100,); max confidence of each row
