@@ -1,5 +1,6 @@
 It's fork of Frigate [https://github.com/blakeblackshear/frigate] to run it at Rockchip based boards.
-For an instance Orange Pi 5 
+For an instance Orange Pi 5
+All comercial and external services are removed.
 
 1) Pull the repo
 ```
