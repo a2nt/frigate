@@ -6,9 +6,10 @@ IMAGE_REPO ?= ghcr.io/blakeblackshear/frigate
 GITHUB_REF_NAME ?= $(shell git rev-parse --abbrev-ref HEAD)
 CURRENT_UID := $(shell id -u)
 CURRENT_GID := $(shell id -g)
-BOARDS= #Initialized empty
+BOARDS= # Initialized empty
 
-include docker/*/*.mk
+#include docker/*/*.mk
+include docker/rockchip/*.mk
 
 build-boards: $(BOARDS:%=build-%)
 
