@@ -2,17 +2,17 @@ It's fork of Frigate [https://github.com/blakeblackshear/frigate] to run it at R
 For an instance Orange Pi 5 
 
 1) Pull the repo
-[code]
+```
 git pull https://github.com/a2nt/frigate.git && cd ./frigate
-[/code]
+```
 
 2) Run docker image build
-[code]
+```
 make build-boards
-[/code]
+```
 
-3) Set resulting image name at your docker_compose.yml
-[code]
+4) Set resulting image name at your docker_compose.yml
+```
 version: "3.9"
 services:
   frigate:
@@ -53,6 +53,6 @@ services:
       FRIGATE_RTSP_USER: "admin"
       FRIGATE_RTSP_PASSWORD: "admin"
       I_PROMISE_I_WONT_MAKE_AN_ISSUE_ON_GITHUB: "true"
-[/code]
+```
 
 4) Done!
