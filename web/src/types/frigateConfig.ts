@@ -340,10 +340,6 @@ export interface FrigateConfig {
     track: string[];
   };
 
-  plus: {
-    enabled: boolean;
-  };
-
   record: {
     enabled: boolean;
     enabled_in_config: boolean | null;

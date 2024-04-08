@@ -41,7 +41,6 @@ class Event(Model):  # type: ignore[misc]
     ratio = FloatField(
         default=1.0
     )  # TODO remove when columns can be dropped without rebuilding table
-    plus_id = CharField(max_length=30)
     model_hash = CharField(max_length=32)
     detector_type = CharField(max_length=32)
     model_type = CharField(max_length=32)

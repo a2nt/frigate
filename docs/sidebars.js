@@ -55,17 +55,10 @@ module.exports = {
       ],
     },
     Integrations: [
-      "integrations/plus",
       "integrations/home-assistant",
       "integrations/api",
       "integrations/mqtt",
       "integrations/third_party_extensions",
-    ],
-    "Frigate+": [
-      "plus/index",
-      "plus/first_model",
-      "plus/improving_model",
-      "plus/faq",
     ],
     Troubleshooting: [
       "troubleshooting/faqs",

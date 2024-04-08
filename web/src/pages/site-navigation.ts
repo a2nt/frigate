@@ -22,12 +22,6 @@ export const navbarLinks = [
     url: "/export",
   },
   {
-    id: 5,
-    icon: Logo,
-    title: "Frigate+",
-    url: "/plus",
-  },
-  {
     id: 4,
     icon: LuConstruction,
     title: "UI Playground",

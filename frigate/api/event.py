@@ -73,7 +73,6 @@ def events():
     favorites = request.args.get("favorites", type=int)
     min_score = request.args.get("min_score", type=float)
     max_score = request.args.get("max_score", type=float)
-    is_submitted = request.args.get("is_submitted", type=int)
     min_length = request.args.get("min_length", type=float)
     max_length = request.args.get("max_length", type=float)
 
@@ -88,11 +87,9 @@ def events():
         Event.end_time,
         Event.has_clip,
         Event.has_snapshot,
-        Event.plus_id,
         Event.retain_indefinitely,
         Event.sub_label,
         Event.top_score,
-        Event.false_positive,
         Event.box,
         Event.data,
     ]
@@ -210,12 +207,6 @@ def events():
     if max_length is not None:
         clauses.append(((Event.end_time - Event.start_time) <= max_length))
 
-    if is_submitted is not None:
-        if is_submitted == 0:
-            clauses.append((Event.plus_id.is_null()))
-        elif is_submitted > 0:
-            clauses.append((Event.plus_id != ""))
-
     if len(clauses) == 0:
         clauses.append((True))
 
@@ -299,196 +290,6 @@ def set_retain(id):
     return make_response(
         jsonify({"success": True, "message": "Event " + id + " retained"}), 200
     )
-
-
-@EventBp.route("/events/<id>/plus", methods=("POST",))
-def send_to_plus(id):
-    if not current_app.plus_api.is_active():
-        message = "PLUS_API_KEY environment variable is not set"
-        logger.error(message)
-        return make_response(
-            jsonify(
-                {
-                    "success": False,
-                    "message": message,
-                }
-            ),
-            400,
-        )
-
-    include_annotation = (
-        request.json.get("include_annotation") if request.is_json else None
-    )
-
-    try:
-        event = Event.get(Event.id == id)
-    except DoesNotExist:
-        message = f"Event {id} not found"
-        logger.error(message)
-        return make_response(jsonify({"success": False, "message": message}), 404)
-
-    # events from before the conversion to relative dimensions cant include annotations
-    if event.data.get("box") is None:
-        include_annotation = None
-
-    if event.end_time is None:
-        logger.error(f"Unable to load clean png for in-progress event: {event.id}")
-        return make_response(
-            jsonify(
-                {
-                    "success": False,
-                    "message": "Unable to load clean png for in-progress event",
-                }
-            ),
-            400,
-        )
-
-    if event.plus_id:
-        message = "Already submitted to plus"
-        logger.error(message)
-        return make_response(jsonify({"success": False, "message": message}), 400)
-
-    # load clean.png
-    try:
-        filename = f"{event.camera}-{event.id}-clean.png"
-        image = cv2.imread(os.path.join(CLIPS_DIR, filename))
-    except Exception:
-        logger.error(f"Unable to load clean png for event: {event.id}")
-        return make_response(
-            jsonify(
-                {"success": False, "message": "Unable to load clean png for event"}
-            ),
-            400,
-        )
-
-    if image is None or image.size == 0:
-        logger.error(f"Unable to load clean png for event: {event.id}")
-        return make_response(
-            jsonify(
-                {"success": False, "message": "Unable to load clean png for event"}
-            ),
-            400,
-        )
-
-    try:
-        plus_id = current_app.plus_api.upload_image(image, event.camera)
-    except Exception as ex:
-        logger.exception(ex)
-        return make_response(
-            jsonify({"success": False, "message": "Error uploading image"}),
-            400,
-        )
-
-    # store image id in the database
-    event.plus_id = plus_id
-    event.save()
-
-    if include_annotation is not None:
-        box = event.data["box"]
-
-        try:
-            current_app.plus_api.add_annotation(
-                event.plus_id,
-                box,
-                event.label,
-            )
-        except ValueError:
-            message = "Error uploading annotation, unsupported label provided."
-            logger.error(message)
-            return make_response(
-                jsonify({"success": False, "message": message}),
-                400,
-            )
-        except Exception as ex:
-            logger.exception(ex)
-            return make_response(
-                jsonify({"success": False, "message": "Error uploading annotation"}),
-                400,
-            )
-
-    return make_response(jsonify({"success": True, "plus_id": plus_id}), 200)
-
-
-@EventBp.route("/events/<id>/false_positive", methods=("PUT",))
-def false_positive(id):
-    if not current_app.plus_api.is_active():
-        message = "PLUS_API_KEY environment variable is not set"
-        logger.error(message)
-        return make_response(
-            jsonify(
-                {
-                    "success": False,
-                    "message": message,
-                }
-            ),
-            400,
-        )
-
-    try:
-        event = Event.get(Event.id == id)
-    except DoesNotExist:
-        message = f"Event {id} not found"
-        logger.error(message)
-        return make_response(jsonify({"success": False, "message": message}), 404)
-
-    # events from before the conversion to relative dimensions cant include annotations
-    if event.data.get("box") is None:
-        message = "Events prior to 0.13 cannot be submitted as false positives"
-        logger.error(message)
-        return make_response(jsonify({"success": False, "message": message}), 400)
-
-    if event.false_positive:
-        message = "False positive already submitted to Frigate+"
-        logger.error(message)
-        return make_response(jsonify({"success": False, "message": message}), 400)
-
-    if not event.plus_id:
-        plus_response = send_to_plus(id)
-        if plus_response.status_code != 200:
-            return plus_response
-        # need to refetch the event now that it has a plus_id
-        event = Event.get(Event.id == id)
-
-    region = event.data["region"]
-    box = event.data["box"]
-
-    # provide top score if score is unavailable
-    score = (
-        (event.data["top_score"] if event.data["top_score"] else event.top_score)
-        if event.data["score"] is None
-        else event.data["score"]
-    )
-
-    try:
-        current_app.plus_api.add_false_positive(
-            event.plus_id,
-            region,
-            box,
-            score,
-            event.label,
-            event.model_hash,
-            event.model_type,
-            event.detector_type,
-        )
-    except ValueError:
-        message = "Error uploading false positive, unsupported label provided."
-        logger.error(message)
-        return make_response(
-            jsonify({"success": False, "message": message}),
-            400,
-        )
-    except Exception as ex:
-        logger.exception(ex)
-        return make_response(
-            jsonify({"success": False, "message": "Error uploading false positive"}),
-            400,
-        )
-
-    event.false_positive = True
-    event.save()
-
-    return make_response(jsonify({"success": True, "plus_id": event.plus_id}), 200)
-
 
 @EventBp.route("/events/<id>/retain", methods=("DELETE",))
 def delete_retain(id):

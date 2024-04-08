@@ -234,7 +234,6 @@ Events from the database. Accepts the following query string parameters:
 | `timezone`           | str   | Timezone to use for time range                        |
 | `min_score`          | float | Minimum score of the event                            |
 | `max_score`          | float | Maximum score of the event                            |
-| `is_submitted`       | int   | Filter events that are submitted to Frigate+ (0 or 1) |
 | `min_length`         | float | Minimum length of the event                           |
 | `max_length`         | float | Maximum length of the event                           |
 
@@ -254,17 +253,6 @@ Permanently deletes the event along with any clips/snapshots.
 
 Sets retain to true for the event id.
 
-### `POST /api/events/<id>/plus`
-
-Submits the snapshot of the event to Frigate+ for labeling.
-
-| param                | Type | Description                        |
-| -------------------- | ---- | ---------------------------------- |
-| `include_annotation` | int  | Submit annotation to Frigate+ too. |
-
-### `PUT /api/events/<id>/false_positive`
-
-Submits the snapshot of the event to Frigate+ for labeling and adds the detection as a false positive.
 
 ### `DELETE /api/events/<id>/retain`
 
