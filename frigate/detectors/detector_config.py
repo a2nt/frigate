@@ -77,7 +77,7 @@ class ModelConfig(BaseModel):
         self._colormap = {}
 
     def check_and_load_plus_model(
-        self, plus_api: PlusApi, detector: str = None
+        self, detector: str = None
     ) -> None:
         if not self.path or not self.path.startswith("plus://"):
             return

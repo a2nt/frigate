@@ -119,7 +119,6 @@ class TestHttp(unittest.TestCase):
             None,
             None,
             None,
-            PlusApi(),
             None,
         )
         id = "123456.random"
@@ -155,7 +154,6 @@ class TestHttp(unittest.TestCase):
             None,
             None,
             None,
-            PlusApi(),
             None,
         )
         id = "123456.random"
@@ -176,7 +174,6 @@ class TestHttp(unittest.TestCase):
             None,
             None,
             None,
-            PlusApi(),
             None,
         )
         id = "123456.random"
@@ -196,7 +193,6 @@ class TestHttp(unittest.TestCase):
             None,
             None,
             None,
-            PlusApi(),
             None,
         )
         id = "123456.random"
@@ -218,7 +214,6 @@ class TestHttp(unittest.TestCase):
             None,
             None,
             None,
-            PlusApi(),
             None,
         )
         id = "123456.random"
@@ -244,7 +239,6 @@ class TestHttp(unittest.TestCase):
             None,
             None,
             None,
-            PlusApi(),
             None,
         )
         morning_id = "123456.random"
@@ -282,7 +276,6 @@ class TestHttp(unittest.TestCase):
             None,
             None,
             None,
-            PlusApi(),
             None,
         )
         id = "123456.random"
@@ -317,7 +310,6 @@ class TestHttp(unittest.TestCase):
             None,
             None,
             None,
-            PlusApi(),
             None,
         )
         id = "123456.random"
@@ -342,7 +334,6 @@ class TestHttp(unittest.TestCase):
             None,
             None,
             None,
-            PlusApi(),
             None,
         )
 
@@ -359,7 +350,6 @@ class TestHttp(unittest.TestCase):
             None,
             None,
             None,
-            PlusApi(),
             None,
         )
         id = "123456.random"
@@ -380,7 +370,6 @@ class TestHttp(unittest.TestCase):
             None,
             None,
             None,
-            PlusApi(),
             stats,
         )
 

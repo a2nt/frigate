@@ -78,7 +78,6 @@ class FrigateApp:
         self.detection_out_events: dict[str, MpEvent] = {}
         self.detection_shms: list[mp.shared_memory.SharedMemory] = []
         self.log_queue: Queue = mp.Queue()
-        self.plus_api = PlusApi()
         self.camera_metrics: dict[str, CameraMetricsTypes] = {}
         self.ptz_metrics: dict[str, PTZMetricsTypes] = {}
         self.processes: dict[str, int] = {}
@@ -126,7 +125,7 @@ class FrigateApp:
             save_default_config(config_file)
 
         user_config = FrigateConfig.parse_file(config_file)
-        self.config = user_config.runtime_config(self.plus_api)
+        self.config = user_config.runtime_config()
 
         for camera_name in self.config.cameras.keys():
             # create camera_metrics
@@ -343,7 +342,6 @@ class FrigateApp:
             self.storage_maintainer,
             self.onvif_controller,
             self.external_event_processor,
-            self.plus_api,
             self.stats_emitter,
         )
 

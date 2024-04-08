@@ -50,7 +50,6 @@ def create_app(
     storage_maintainer: StorageMaintainer,
     onvif: OnvifController,
     external_processor: ExternalEventProcessor,
-    plus_api: PlusApi,
     stats_emitter: StatsEmitter,
 ):
     app = Flask(__name__)
@@ -77,7 +76,6 @@ def create_app(
     app.storage_maintainer = storage_maintainer
     app.onvif = onvif
     app.external_processor = external_processor
-    app.plus_api = plus_api
     app.camera_error_image = None
     app.stats_emitter = stats_emitter
 
@@ -152,8 +150,6 @@ def config():
         camera_dict["ffmpeg_cmds"] = copy.deepcopy(camera.ffmpeg_cmds)
         for cmd in camera_dict["ffmpeg_cmds"]:
             cmd["cmd"] = clean_camera_user_pass(" ".join(cmd["cmd"]))
-
-    config["plus"] = {"enabled": current_app.plus_api.is_active()}
 
     for detector, detector_config in config["detectors"].items():
         detector_config["model"]["labelmap"] = (
@@ -315,7 +311,7 @@ def config_set():
 
     if json.get("requires_restart", 1) == 0:
         current_app.frigate_config = FrigateConfig.runtime_config(
-            config_obj, current_app.plus_api
+            config_obj
         )
 
     return make_response(

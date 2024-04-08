@@ -879,7 +879,7 @@ class TestConfig(unittest.TestCase):
         frigate_config = FrigateConfig(**config)
         assert config == frigate_config.dict(exclude_unset=True)
 
-        runtime_config = frigate_config.runtime_config(PlusApi())
+        runtime_config = frigate_config.runtime_config()
         assert runtime_config.model.merged_labelmap[0] == "amazon"
 
     def test_fails_on_invalid_role(self):
