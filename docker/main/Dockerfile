@@ -57,9 +57,9 @@ RUN apt-get -qq update \
     && pip install -r /requirements-ov.txt
 
 # Get OpenVino Model
-RUN mkdir /models \
-    && cd /models && omz_downloader --name ssdlite_mobilenet_v2 \
-    && cd /models && omz_converter --name ssdlite_mobilenet_v2 --precision FP16
+#RUN mkdir /models \
+#    && cd /models && omz_downloader --name ssdlite_mobilenet_v2 \
+#    && cd /models && omz_converter --name ssdlite_mobilenet_v2 --precision FP16
 
 
 # libUSB - No Udev
@@ -97,12 +97,12 @@ RUN wget -qO edgetpu_model.tflite https://github.com/google-coral/test_data/raw/
 RUN wget -qO cpu_model.tflite https://github.com/google-coral/test_data/raw/release-frogfish/ssdlite_mobiledet_coco_qat_postprocess.tflite
 COPY labelmap.txt .
 # Copy OpenVino model
-COPY --from=ov-converter /models/public/ssdlite_mobilenet_v2/FP16 openvino-model
-RUN wget -q https://github.com/openvinotoolkit/open_model_zoo/raw/master/data/dataset_classes/coco_91cl_bkgr.txt -O openvino-model/coco_91cl_bkgr.txt && \
-    sed -i 's/truck/car/g' openvino-model/coco_91cl_bkgr.txt
+#COPY --from=ov-converter /models/public/ssdlite_mobilenet_v2/FP16 openvino-model
+#RUN wget -q https://github.com/openvinotoolkit/open_model_zoo/raw/master/data/dataset_classes/coco_91cl_bkgr.txt -O openvino-model/coco_91cl_bkgr.txt && \
+#    sed -i 's/truck/car/g' openvino-model/coco_91cl_bkgr.txt
 # Get Audio Model and labels
-RUN wget -qO cpu_audio_model.tflite https://tfhub.dev/google/lite-model/yamnet/classification/tflite/1?lite-format=tflite
-COPY audio-labelmap.txt .
+#RUN wget -qO cpu_audio_model.tflite https://tfhub.dev/google/lite-model/yamnet/classification/tflite/1?lite-format=tflite
+#COPY audio-labelmap.txt .
 
 
 FROM wget AS s6-overlay
