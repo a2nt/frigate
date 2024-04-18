@@ -1,17 +1,13 @@
-import Logo from "@/components/Logo";
 import { ENV } from "@/env";
-import { FrigateConfig } from "@/types/frigateConfig";
 import { NavData } from "@/types/navigation";
 import { useMemo } from "react";
 import { FaCompactDisc, FaVideo } from "react-icons/fa";
 import { LuConstruction } from "react-icons/lu";
 import { MdVideoLibrary } from "react-icons/md";
-import useSWR from "swr";
 
 export default function useNavigation(
   variant: "primary" | "secondary" = "primary",
 ) {
-  const { data: config } = useSWR<FrigateConfig>("config");
 
   return useMemo(
     () =>
@@ -38,14 +34,6 @@ export default function useNavigation(
           url: "/export",
         },
         {
-          id: 5,
-          variant,
-          icon: Logo,
-          title: "Frigate+",
-          url: "/plus",
-          enabled: config?.plus?.enabled == true,
-        },
-        {
           id: 4,
           variant,
           icon: LuConstruction,
@@ -54,6 +42,6 @@ export default function useNavigation(
           enabled: ENV !== "production",
         },
       ] as NavData[],
-    [config?.plus.enabled, variant],
+      [false, variant],
   );
 }
