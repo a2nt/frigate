@@ -22,8 +22,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
-import FilterCheckBox from "./FilterCheckBox";
 import axios from "axios";
+import FilterSwitch from "./FilterSwitch";
 
 type CameraGroupSelectorProps = {
   className?: string;
@@ -131,7 +131,7 @@ export function CameraGroupSelector({ className }: CameraGroupSelectorProps) {
           size="xs"
           onClick={() => setAddGroup(true)}
         >
-          <LuPlus className="size-4 text-primary-foreground" />
+          <LuPlus className="size-4 text-primary" />
         </Button>
       )}
     </div>
@@ -253,7 +253,7 @@ function NewGroupDialog({ open, setOpen, currentGroups }: NewGroupDialogProps) {
         {currentGroups.length > 0 && <DropdownMenuSeparator />}
         {editState == "none" && (
           <Button
-            className="text-primary-foreground justify-start"
+            className="text-primary justify-start"
             variant="ghost"
             onClick={() => setEditState("add")}
           >
@@ -305,7 +305,7 @@ function NewGroupDialog({ open, setOpen, currentGroups }: NewGroupDialogProps) {
                   ...(birdseyeConfig?.enabled ? ["birdseye"] : []),
                   ...Object.keys(config?.cameras ?? {}),
                 ].map((camera) => (
-                  <FilterCheckBox
+                  <FilterSwitch
                     key={camera}
                     isChecked={cameras.includes(camera)}
                     label={camera.replaceAll("_", " ")}

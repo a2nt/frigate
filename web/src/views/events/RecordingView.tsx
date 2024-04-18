@@ -39,6 +39,7 @@ import MobileTimelineDrawer from "@/components/overlay/MobileTimelineDrawer";
 import MobileReviewSettingsDrawer from "@/components/overlay/MobileReviewSettingsDrawer";
 import Logo from "@/components/Logo";
 import { Skeleton } from "@/components/ui/skeleton";
+import { FaVideo } from "react-icons/fa";
 
 const SEGMENT_DURATION = 30;
 
@@ -251,15 +252,28 @@ export function RecordingView({
         {isMobile && (
           <Logo className="absolute inset-x-1/2 -translate-x-1/2 h-8" />
         )}
-        <Button
-          className="flex items-center gap-2 rounded-lg"
-          size="sm"
-          variant="secondary"
-          onClick={() => navigate(-1)}
+        <div
+          className={`flex items-center gap-2 ${isMobile ? "landscape:flex-col" : ""}`}
         >
-          <IoMdArrowRoundBack className="size-5" size="small" />
-          {isDesktop && <div className="text-primary-foreground">Back</div>}
-        </Button>
+          <Button
+            className={`flex items-center gap-2.5 rounded-lg`}
+            size="sm"
+            onClick={() => navigate(-1)}
+          >
+            <IoMdArrowRoundBack className="size-5 text-secondary-foreground" />
+            {isDesktop && <div className="text-primary">Back</div>}
+          </Button>
+          <Button
+            className="flex items-center gap-2.5 rounded-lg"
+            size="sm"
+            onClick={() => {
+              navigate(`/#${mainCamera}`);
+            }}
+          >
+            <FaVideo className="size-5 text-secondary-foreground" />
+            {isDesktop && <div className="text-primary">Live</div>}
+          </Button>
+        </div>
         <div className="flex items-center justify-end gap-2">
           <MobileCameraDrawer
             allCameras={allCameras}
@@ -350,11 +364,11 @@ export function RecordingView({
           >
             <div
               key={mainCamera}
-              className={
+              className={`relative ${
                 isDesktop
-                  ? `${mainCameraAspect == "tall" ? "h-[90%]" : mainCameraAspect == "wide" ? "w-full" : "w-[78%]"} px-4 flex justify-center`
+                  ? `${mainCameraAspect == "tall" ? "h-[50%] md:h-[60%] lg:h-[75%] xl:h-[90%]" : mainCameraAspect == "wide" ? "w-full" : "w-[78%]"} px-4 flex justify-center`
                   : `portrait:w-full pt-2 ${mainCameraAspect == "wide" ? "landscape:w-full aspect-wide" : "landscape:h-[94%] aspect-video"}`
-              }
+              }`}
               style={{
                 aspectRatio: isDesktop
                   ? mainCameraAspect == "tall"

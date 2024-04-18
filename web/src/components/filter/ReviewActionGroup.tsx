@@ -40,7 +40,7 @@ export default function ReviewActionGroup({
         <div className="p-1">{`${selectedReviews.length} selected`}</div>
         <div className="p-1">{"|"}</div>
         <div
-          className="p-2 text-primary-foreground cursor-pointer hover:bg-secondary hover:rounded-lg"
+          className="p-2 text-primary cursor-pointer hover:bg-secondary hover:rounded-lg"
           onClick={onClearSelected}
         >
           Unselect
@@ -50,36 +50,31 @@ export default function ReviewActionGroup({
         {selectedReviews.length == 1 && (
           <Button
             className="p-2 flex items-center gap-2"
-            variant="secondary"
             size="sm"
             onClick={() => {
               onExport(selectedReviews[0]);
               onClearSelected();
             }}
           >
-            <FaCompactDisc />
-            {isDesktop && <div className="text-primary-foreground">Export</div>}
+            <FaCompactDisc className="text-secondary-foreground" />
+            {isDesktop && <div className="text-primary">Export</div>}
           </Button>
         )}
         <Button
           className="p-2 flex items-center gap-2"
-          variant="secondary"
           size="sm"
           onClick={onMarkAsReviewed}
         >
-          <FaCircleCheck />
-          {isDesktop && (
-            <div className="text-primary-foreground">Mark as reviewed</div>
-          )}
+          <FaCircleCheck className="text-secondary-foreground" />
+          {isDesktop && <div className="text-primary">Mark as reviewed</div>}
         </Button>
         <Button
-          className="p-2 flex items-center gap-1"
-          variant="secondary"
+          className="p-2 flex items-center gap-2"
           size="sm"
           onClick={onDelete}
         >
-          <HiTrash />
-          {isDesktop && <div className="text-primary-foreground">Delete</div>}
+          <HiTrash className="text-secondary-foreground" />
+          {isDesktop && <div className="text-primary">Delete</div>}
         </Button>
       </div>
     </div>

@@ -11,6 +11,7 @@ import { FaCopy } from "react-icons/fa6";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { isDesktop } from "react-device-detect";
+import ActivityIndicator from "@/components/indicators/activity-indicator";
 
 const logTypes = ["frigate", "go2rtc", "nginx"] as const;
 type LogType = (typeof logTypes)[number];
@@ -28,6 +29,10 @@ const ngSeverity = /(GET)|(POST)|(PUT)|(PATCH)|(DELETE)/;
 
 function Logs() {
   const [logService, setLogService] = useState<LogType>("frigate");
+
+  useEffect(() => {
+    document.title = `${logService[0].toUpperCase()}${logService.substring(1)} Logs - Frigate`;
+  }, [logService]);
 
   // log data handling
 
@@ -274,6 +279,9 @@ function Logs() {
                 }
               })
               .catch(() => {});
+            contentRef.current?.scrollBy({
+              top: 10,
+            });
           }
         });
         if (node) startObserver.current.observe(node);
@@ -356,11 +364,10 @@ function Logs() {
           <Button
             className="flex justify-between items-center gap-2"
             size="sm"
-            variant="secondary"
             onClick={handleCopyLogs}
           >
-            <FaCopy />
-            <div className="hidden md:block text-primary-foreground">
+            <FaCopy className="text-secondary-foreground" />
+            <div className="hidden md:block text-primary">
               Copy to Clipboard
             </div>
           </Button>
@@ -373,8 +380,7 @@ function Logs() {
 
       {initialScroll && !endVisible && (
         <Button
-          className="absolute bottom-8 left-[50%] -translate-x-[50%] rounded-md text-primary-foreground bg-secondary-foreground z-20 p-2"
-          variant="secondary"
+          className="absolute bottom-8 left-[50%] -translate-x-[50%] rounded-md text-primary bg-secondary-foreground z-20 p-2"
           onClick={() =>
             contentRef.current?.scrollTo({
               top: contentRef.current?.scrollHeight,
@@ -386,8 +392,8 @@ function Logs() {
         </Button>
       )}
 
-      <div className="size-full flex flex-col my-2 font-mono text-sm sm:p-2 whitespace-pre-wrap bg-primary border border-secondary rounded-md overflow-hidden">
-        <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-12 *:px-2 *:py-3 *:text-sm *:text-primary-foreground/40">
+      <div className="relative size-full flex flex-col my-2 font-mono text-sm sm:p-2 whitespace-pre-wrap bg-background_alt border border-secondary rounded-md overflow-hidden">
+        <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-12 *:px-2 *:py-3 *:text-sm *:text-primary/40">
           <div className="p-1 flex items-center capitalize">Type</div>
           <div className="col-span-2 sm:col-span-1 flex items-center">
             Timestamp
@@ -441,6 +447,9 @@ function Logs() {
             })}
           {logLines.length > 0 && <div id="page-bottom" ref={endLogRef} />}
         </div>
+        {logLines.length == 0 && (
+          <ActivityIndicator className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2" />
+        )}
       </div>
     </div>
   );

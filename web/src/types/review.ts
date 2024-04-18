@@ -3,7 +3,7 @@ export interface ReviewSegment {
   camera: string;
   severity: ReviewSeverity;
   start_time: number;
-  end_time: number;
+  end_time?: number;
   thumb_path: string;
   has_been_reviewed: boolean;
   data: ReviewData;
@@ -15,6 +15,7 @@ export type ReviewData = {
   audio: string[];
   detections: string[];
   objects: string[];
+  sub_labels?: string[];
   significant_motion_areas: number[];
   zones: string[];
 };

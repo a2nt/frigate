@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import TimelineEventOverlay from "../../overlay/TimelineDataOverlay";
 import { useApiHost } from "@/api";
 import useSWR from "swr";
 import { FrigateConfig } from "@/types/frigateConfig";
@@ -8,7 +7,8 @@ import { Preview } from "@/types/preview";
 import PreviewPlayer, { PreviewController } from "../PreviewPlayer";
 import { DynamicVideoController } from "./DynamicVideoController";
 import HlsVideoPlayer from "../HlsVideoPlayer";
-import { TimeRange, Timeline } from "@/types/timeline";
+import { TimeRange } from "@/types/timeline";
+import ActivityIndicator from "@/components/indicators/activity-indicator";
 
 /**
  * Dynamically switches between video playback and scrubbing preview player.
@@ -45,9 +45,6 @@ export default function DynamicVideoPlayer({
   const playerRef = useRef<HTMLVideoElement | null>(null);
   const [previewController, setPreviewController] =
     useState<PreviewController | null>(null);
-  const [focusedItem, setFocusedItem] = useState<Timeline | undefined>(
-    undefined,
-  );
   const controller = useMemo(() => {
     if (!config || !playerRef.current || !previewController) {
       return undefined;
@@ -59,7 +56,7 @@ export default function DynamicVideoPlayer({
       previewController,
       (config.cameras[camera]?.detect?.annotation_offset || 0) / 1000,
       isScrubbing ? "scrubbing" : "playback",
-      setFocusedItem,
+      () => {},
     );
     // we only want to fire once when players are ready
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -81,6 +78,7 @@ export default function DynamicVideoPlayer({
   // initial state
 
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingTimeout, setLoadingTimeout] = useState<NodeJS.Timeout>();
   const [source, setSource] = useState(
     `${apiHost}vod/${camera}/start/${timeRange.after}/end/${timeRange.before}/master.m3u8`,
   );
@@ -88,10 +86,16 @@ export default function DynamicVideoPlayer({
   // start at correct time
 
   useEffect(() => {
-    if (isScrubbing) {
-      setIsLoading(true);
+    if (!isScrubbing) {
+      setLoadingTimeout(setTimeout(() => setIsLoading(true), 1000));
     }
-  }, [isScrubbing]);
+
+    return () => {
+      if (loadingTimeout) {
+        clearTimeout(loadingTimeout)
+      }
+    }
+  }, [camera, isScrubbing]);
 
   const onPlayerLoaded = useCallback(() => {
     if (!controller || !startTimestamp) {
@@ -107,9 +111,13 @@ export default function DynamicVideoPlayer({
         return;
       }
 
+      if (isLoading) {
+        setIsLoading(false);
+      }
+
       onTimestampUpdate(controller.getProgress(time));
     },
-    [controller, onTimestampUpdate, isScrubbing],
+    [controller, onTimestampUpdate, isScrubbing, isLoading],
   );
 
   // state of playback player
@@ -137,7 +145,7 @@ export default function DynamicVideoPlayer({
     setSource(
       `${apiHost}vod/${camera}/start/${timeRange.after}/end/${timeRange.before}/master.m3u8`,
     );
-    setIsLoading(true);
+    setLoadingTimeout(setTimeout(() => setIsLoading(true), 1000));
 
     controller.newPlayback({
       recordings: recordings ?? [],
@@ -150,7 +158,6 @@ export default function DynamicVideoPlayer({
   return (
     <>
       <HlsVideoPlayer
-        className={className ?? ""}
         videoRef={playerRef}
         visible={!(isScrubbing || isLoading)}
         currentSource={source}
@@ -163,16 +170,13 @@ export default function DynamicVideoPlayer({
             playerRef.current?.pause();
           }
 
+          if (loadingTimeout) {
+            clearTimeout(loadingTimeout);
+          }
+
           setIsLoading(false);
         }}
-      >
-        {config && focusedItem && (
-          <TimelineEventOverlay
-            timeline={focusedItem}
-            cameraConfig={config.cameras[camera]}
-          />
-        )}
-      </HlsVideoPlayer>
+      />
       <PreviewPlayer
         className={`${isScrubbing || isLoading ? "visible" : "hidden"} ${className}`}
         camera={camera}
@@ -184,6 +188,9 @@ export default function DynamicVideoPlayer({
           setPreviewController(previewController);
         }}
       />
+      {isLoading && (
+        <ActivityIndicator className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" />
+      )}
     </>
   );
 }

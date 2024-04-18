@@ -8,6 +8,7 @@ from pathlib import Path
 import pandas as pd
 from flask import Blueprint, jsonify, make_response, request
 from peewee import Case, DoesNotExist, fn, operator
+from playhouse.shortcuts import model_to_dict
 
 from frigate.models import Recordings, ReviewSegment
 from frigate.util.builtin import get_tz_modifiers
@@ -27,10 +28,18 @@ def review():
 
     before = request.args.get("before", type=float, default=datetime.now().timestamp())
     after = request.args.get(
-        "after", type=float, default=(datetime.now() - timedelta(hours=18)).timestamp()
+        "after", type=float, default=(datetime.now() - timedelta(hours=24)).timestamp()
     )
 
-    clauses = [((ReviewSegment.start_time > after) & (ReviewSegment.end_time < before))]
+    clauses = [
+        (
+            (ReviewSegment.start_time > after)
+            & (
+                (ReviewSegment.end_time.is_null(True))
+                | (ReviewSegment.end_time < before)
+            )
+        )
+    ]
 
     if cameras != "all":
         camera_list = cameras.split(",")
@@ -45,6 +54,7 @@ def review():
         for label in filtered_labels:
             label_clauses.append(
                 (ReviewSegment.data["objects"].cast("text") % f'*"{label}"*')
+                | (ReviewSegment.data["audio"].cast("text") % f'*"{label}"*')
             )
 
         label_clause = reduce(operator.or_, label_clauses)
@@ -67,6 +77,14 @@ def review():
     )
 
     return jsonify([r for r in review])
+
+
+@ReviewBp.route("/review/<id>")
+def get_review(id: str):
+    try:
+        return model_to_dict(ReviewSegment.get(ReviewSegment.id == id))
+    except DoesNotExist:
+        return "Review item not found", 404
 
 
 @ReviewBp.route("/review/summary")
@@ -94,6 +112,7 @@ def review_summary():
         for label in filtered_labels:
             label_clauses.append(
                 (ReviewSegment.data["objects"].cast("text") % f'*"{label}"*')
+                | (ReviewSegment.data["audio"].cast("text") % f'*"{label}"*')
             )
 
         label_clause = reduce(operator.or_, label_clauses)
@@ -429,12 +448,12 @@ def motion_activity():
     # normalize data
     motion = (
         df["motion"]
-        .resample(f"{scale}S")
+        .resample(f"{scale}s")
         .apply(lambda x: max(x, key=abs, default=0.0))
         .fillna(0.0)
         .to_frame()
     )
-    cameras = df["camera"].resample(f"{scale}S").agg(lambda x: ",".join(set(x)))
+    cameras = df["camera"].resample(f"{scale}s").agg(lambda x: ",".join(set(x)))
     df = motion.join(cameras)
 
     length = df.shape[0]

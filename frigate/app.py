@@ -62,6 +62,7 @@ from frigate.storage import StorageMaintainer
 from frigate.timeline import TimelineProcessor
 from frigate.types import CameraMetricsTypes, PTZMetricsTypes
 from frigate.util.builtin import save_default_config
+from frigate.util.config import migrate_frigate_config
 from frigate.util.object import get_camera_regions_grid
 from frigate.version import VERSION
 from frigate.video import capture_camera, track_camera
@@ -123,6 +124,9 @@ class FrigateApp:
             print("No config file found, saving default config")
             config_file = config_file_yaml
             save_default_config(config_file)
+
+        # check if the config file needs to be migrated
+        migrate_frigate_config(config_file)
 
         user_config = FrigateConfig.parse_file(config_file)
         self.config = user_config.runtime_config()
@@ -663,6 +667,14 @@ class FrigateApp:
     def stop(self) -> None:
         logger.info("Stopping...")
         self.stop_event.set()
+
+        # set an end_time on entries without an end_time before exiting
+        Event.update(end_time=datetime.datetime.now().timestamp()).where(
+            Event.end_time == None
+        ).execute()
+        ReviewSegment.update(end_time=datetime.datetime.now().timestamp()).where(
+            ReviewSegment.end_time == None
+        ).execute()
 
         # Stop Communicators
         self.inter_process_communicator.stop()

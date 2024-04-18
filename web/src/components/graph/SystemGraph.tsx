@@ -72,7 +72,7 @@ export function ThresholdBarGraph({
           } else if (value >= threshold.warning) {
             return "#FF9966";
           } else {
-            return (systemTheme || theme) == "dark" ? "#404040" : "#E5E5E5";
+            return "#217930";
           }
         },
       ],
@@ -92,6 +92,9 @@ export function ThresholdBarGraph({
       },
       tooltip: {
         theme: systemTheme || theme,
+        y: {
+          formatter: (val) => `${val}${unit}`,
+        },
       },
       markers: {
         size: 0,
@@ -118,7 +121,7 @@ export function ThresholdBarGraph({
         min: 0,
       },
     } as ApexCharts.ApexOptions;
-  }, [graphId, threshold, systemTheme, theme, formatTime]);
+  }, [graphId, threshold, unit, systemTheme, theme, formatTime]);
 
   useEffect(() => {
     ApexCharts.exec(graphId, "updateOptions", options, true, true);
@@ -128,7 +131,7 @@ export function ThresholdBarGraph({
     <div className="w-full flex flex-col">
       <div className="flex items-center gap-1">
         <div className="text-xs text-muted-foreground">{name}</div>
-        <div className="text-xs text-primary-foreground">
+        <div className="text-xs text-primary">
           {lastValue}
           {unit}
         </div>
@@ -190,7 +193,7 @@ export function StorageGraph({ graphId, used, total }: StorageGraphProps) {
         },
       },
       tooltip: {
-        show: false,
+        enabled: false,
       },
       xaxis: {
         axisBorder: {
@@ -219,15 +222,13 @@ export function StorageGraph({ graphId, used, total }: StorageGraphProps) {
     <div className="w-full flex flex-col gap-2.5">
       <div className="w-full flex justify-between items-center gap-1">
         <div className="flex items-center gap-1">
-          <div className="text-xs text-primary-foreground">
-            {getUnitSize(used)}
-          </div>
-          <div className="text-xs text-primary-foreground">/</div>
+          <div className="text-xs text-primary">{getUnitSize(used)}</div>
+          <div className="text-xs text-primary">/</div>
           <div className="text-xs text-muted-foreground">
             {getUnitSize(total)}
           </div>
         </div>
-        <div className="text-xs text-primary-foreground">
+        <div className="text-xs text-primary">
           {Math.round((used / total) * 100)}%
         </div>
       </div>
@@ -367,7 +368,7 @@ export function CameraLineGraph({
                 style={{ color: GRAPH_COLORS[labelIdx] }}
               />
               <div className="text-xs text-muted-foreground">{label}</div>
-              <div className="text-xs text-primary-foreground">
+              <div className="text-xs text-primary">
                 {lastValues[labelIdx]}
                 {unit}
               </div>
