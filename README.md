@@ -3,6 +3,7 @@ For an instance Orange Pi 5
 All comercial and external services are removed.
 
 You can get pre-build docker image at: https://github.com/users/a2nt/packages/container/frigate/versions
+For example: ghcr.io/a2nt/frigate:dev-rk-15582525-rk
 
 Or you can build the docker image on your own:
 
@@ -26,7 +27,7 @@ services:
     #network_mode: host
     privileged: true
     restart: unless-stopped
-    image: ghcr.io/a2nt/frigate:dev-5f84bf40-rk # my local img
+    image: ghcr.io/a2nt/frigate:dev-rk-15582525-rk # my local img
     group_add:
       - "110" # render
       - "44"  # video
