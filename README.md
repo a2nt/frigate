@@ -2,6 +2,10 @@ It's fork of Frigate [https://github.com/blakeblackshear/frigate] to run it at R
 For an instance Orange Pi 5
 All comercial and external services are removed.
 
+You can get pre-build docker image at: https://github.com/users/a2nt/packages/container/frigate/versions
+
+Or you can build the docker image on your own:
+
 1) Pull the repo
 ```
 git pull https://github.com/a2nt/frigate.git && cd ./frigate
