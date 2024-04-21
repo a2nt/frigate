@@ -248,7 +248,7 @@ export function CamerasFilterButton({
           <DropdownMenuSeparator />
         </>
       )}
-      <div className="h-auto pt-2 overflow-y-auto overflow-x-hidden">
+      <div className="h-auto p-4 overflow-y-auto overflow-x-hidden">
         <FilterSwitch
           isChecked={currentCameras == undefined}
           label="All Cameras"
@@ -593,40 +593,26 @@ export function GeneralFilterContent({
         <DropdownMenuSeparator />
         <div className="my-2.5 flex flex-col gap-2.5">
           {allLabels.map((item) => (
-            <div className="flex justify-between items-center">
-              <Label
-                className="w-full mx-2 text-primary capitalize cursor-pointer"
-                htmlFor={item}
-              >
-                {item.replaceAll("_", " ")}
-              </Label>
-              <Switch
-                key={item}
-                className="ml-1"
-                id={item}
-                checked={currentLabels?.includes(item) ?? false}
-                onCheckedChange={(isChecked) => {
-                  if (isChecked) {
-                    const updatedLabels = currentLabels
-                      ? [...currentLabels]
-                      : [];
+            <FilterSwitch
+              label={item.replaceAll("_", " ")}
+              isChecked={currentLabels?.includes(item) ?? false}
+              onCheckedChange={(isChecked) => {
+                if (isChecked) {
+                  const updatedLabels = currentLabels ? [...currentLabels] : [];
 
-                    updatedLabels.push(item);
+                  updatedLabels.push(item);
+                  setCurrentLabels(updatedLabels);
+                } else {
+                  const updatedLabels = currentLabels ? [...currentLabels] : [];
+
+                  // can not deselect the last item
+                  if (updatedLabels.length > 1) {
+                    updatedLabels.splice(updatedLabels.indexOf(item), 1);
                     setCurrentLabels(updatedLabels);
-                  } else {
-                    const updatedLabels = currentLabels
-                      ? [...currentLabels]
-                      : [];
-
-                    // can not deselect the last item
-                    if (updatedLabels.length > 1) {
-                      updatedLabels.splice(updatedLabels.indexOf(item), 1);
-                      setCurrentLabels(updatedLabels);
-                    }
                   }
-                }}
-              />
-            </div>
+                }
+              }}
+            />
           ))}
         </div>
       </div>

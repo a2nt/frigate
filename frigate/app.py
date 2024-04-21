@@ -41,6 +41,7 @@ from frigate.events.maintainer import EventProcessor
 from frigate.log import log_process, root_configurer
 from frigate.models import (
     Event,
+    Export,
     Previews,
     Recordings,
     RecordingsToDelete,
@@ -54,6 +55,7 @@ from frigate.output.output import output_frames
 from frigate.ptz.autotrack import PtzAutoTrackerThread
 from frigate.ptz.onvif import OnvifController
 from frigate.record.cleanup import RecordingCleanup
+from frigate.record.export import migrate_exports
 from frigate.record.record import manage_recordings
 from frigate.review.review import manage_review_segments
 from frigate.stats.emitter import StatsEmitter
@@ -245,6 +247,14 @@ class FrigateApp:
         # Run migrations
         del logging.getLogger("peewee_migrate").handlers[:]
         router = Router(migrate_db)
+
+        if len(router.diff) > 0:
+            logger.info("Making backup of DB before migrations...")
+            shutil.copyfile(
+                self.config.database.path,
+                self.config.database.path.replace("frigate.db", "backup.db"),
+            )
+
         router.run()
 
         # this is a temporary check to clean up user DB from beta
@@ -318,6 +328,7 @@ class FrigateApp:
         )
         models = [
             Event,
+            Export,
             Previews,
             Recordings,
             RecordingsToDelete,
@@ -326,6 +337,17 @@ class FrigateApp:
             Timeline,
         ]
         self.db.bind(models)
+
+    def check_db_data_migrations(self) -> None:
+        # check if vacuum needs to be run
+        if not os.path.exists(f"{CONFIG_DIR}/.exports"):
+            try:
+                with open(f"{CONFIG_DIR}/.exports", "w") as f:
+                    f.write(str(datetime.datetime.now().timestamp()))
+            except PermissionError:
+                logger.error("Unable to write to /config to save export state")
+
+            migrate_exports(self.config.cameras.keys())
 
     def init_external_event_processor(self) -> None:
         self.external_event_processor = ExternalEventProcessor(self.config)
@@ -626,6 +648,7 @@ class FrigateApp:
             self.init_review_segment_manager()
             self.init_go2rtc()
             self.bind_database()
+            self.check_db_data_migrations()
             self.init_inter_process_communicator()
             self.init_dispatcher()
         except Exception as e:
