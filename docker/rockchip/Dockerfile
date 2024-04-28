@@ -29,5 +29,5 @@ ADD https://github.com/MarcA711/rknn-models/releases/download/v1.6.0-yolov8-defa
 
 RUN rm -rf /usr/lib/btbn-ffmpeg/bin/ffmpeg
 RUN rm -rf /usr/lib/btbn-ffmpeg/bin/ffprobe
-ADD --chmod=111 https://github.com/MarcA711/Rockchip-FFmpeg-Builds/releases/download/6.1-1/ffmpeg /usr/lib/btbn-ffmpeg/bin/
-ADD --chmod=111 https://github.com/MarcA711/Rockchip-FFmpeg-Builds/releases/download/6.1-1/ffprobe /usr/lib/btbn-ffmpeg/bin/
+ADD --chmod=111 https://github.com/MarcA711/Rockchip-FFmpeg-Builds/releases/download/6.1-2/ffmpeg /usr/lib/btbn-ffmpeg/bin/
+ADD --chmod=111 https://github.com/MarcA711/Rockchip-FFmpeg-Builds/releases/download/6.1-2/ffprobe /usr/lib/btbn-ffmpeg/bin/
