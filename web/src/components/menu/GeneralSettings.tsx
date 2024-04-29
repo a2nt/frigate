@@ -66,10 +66,10 @@ import {
   DialogTrigger,
 } from "../ui/dialog";
 
-type GeneralSettings = {
+type GeneralSettingsProps = {
   className?: string;
 };
-export default function GeneralSettings({ className }: GeneralSettings) {
+export default function GeneralSettings({ className }: GeneralSettingsProps) {
   const { theme, colorScheme, setTheme, setColorScheme } = useTheme();
   const [restartDialogOpen, setRestartDialogOpen] = useState(false);
   const [restartingSheetOpen, setRestartingSheetOpen] = useState(false);
@@ -139,7 +139,7 @@ export default function GeneralSettings({ className }: GeneralSettings) {
               <DropdownMenuLabel>System</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuGroup className={isDesktop ? "" : "flex flex-col"}>
-                <Link to="/system">
+                <Link to="/system#general">
                   <MenuItem
                     className={
                       isDesktop
