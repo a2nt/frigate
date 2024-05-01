@@ -160,6 +160,8 @@ def config():
         for zone_name, zone in config_obj.cameras[camera_name].zones.items():
             camera_dict["zones"][zone_name]["color"] = zone.color
 
+    config["model"]["colormap"] = config_obj.model.colormap
+
     for detector_config in config["detectors"].values():
         detector_config["model"]["labelmap"] = (
             current_app.frigate_config.model.merged_labelmap
