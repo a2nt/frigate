@@ -10,8 +10,6 @@ import { isAndroid, isDesktop, isMobile } from "react-device-detect";
 import { TransformComponent, TransformWrapper } from "react-zoom-pan-pinch";
 import VideoControls from "./VideoControls";
 import { VideoResolutionType } from "@/types/live";
-import useSWR from "swr";
-import { FrigateConfig } from "@/types/frigateConfig";
 import { AxiosResponse } from "axios";
 import { toast } from "sonner";
 
@@ -47,8 +45,6 @@ export default function HlsVideoPlayer({
   setFullResolution,
   onUploadFrame,
 }: HlsVideoPlayerProps) {
-  const { data: config } = useSWR<FrigateConfig>("config");
-
   // playback
 
   const hlsRef = useRef<Hls>();
@@ -151,8 +147,7 @@ export default function HlsVideoPlayer({
         features={{
           volume: true,
           seek: true,
-          playbackRate: true,
-          plusUpload: config?.plus?.enabled == true,
+          playbackRate: true
         }}
         setControlsOpen={setControlsOpen}
         setMuted={setMuted}
