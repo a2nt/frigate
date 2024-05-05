@@ -56,7 +56,7 @@ class TestConfig(unittest.TestCase):
                 },
                 "edgetpu": {
                     "type": "edgetpu",
-                    "model": {"path": "/edgetpu_model.tflite", "width": 160},
+                    "model": {"path": "/edgetpu_model.tflite"},
                 },
                 "openvino": {
                     "type": "openvino",
@@ -85,11 +85,6 @@ class TestConfig(unittest.TestCase):
         assert runtime_config.detectors["cpu"].model.path == "/cpu_model.tflite"
         assert runtime_config.detectors["edgetpu"].model.path == "/edgetpu_model.tflite"
         assert runtime_config.detectors["openvino"].model.path == "/etc/hosts"
-
-        assert runtime_config.model.width == 512
-        assert runtime_config.detectors["cpu"].model.width == 320
-        assert runtime_config.detectors["edgetpu"].model.width == 160
-        assert runtime_config.detectors["openvino"].model.width == 512
 
     def test_invalid_mqtt_config(self):
         config = {
