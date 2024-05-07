@@ -59,6 +59,9 @@ import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import ActivityIndicator from "../indicators/activity-indicator";
 import { ScrollArea, ScrollBar } from "../ui/scroll-area";
+import { usePersistence } from "@/hooks/use-persistence";
+import { TooltipPortal } from "@radix-ui/react-tooltip";
+import { cn } from "@/lib/utils";
 
 type CameraGroupSelectorProps = {
   className?: string;
@@ -87,7 +90,7 @@ export function CameraGroupSelector({ className }: CameraGroupSelectorProps) {
 
   // groups
 
-  const [group, setGroup] = usePersistedOverlayState(
+  const [group, setGroup, deleteGroup] = usePersistedOverlayState(
     "cameraGroup",
     "default" as string,
   );
@@ -116,10 +119,15 @@ export function CameraGroupSelector({ className }: CameraGroupSelectorProps) {
         currentGroups={groups}
         activeGroup={group}
         setGroup={setGroup}
+        deleteGroup={deleteGroup}
       />
       <Scroller className={`${isMobile ? "whitespace-nowrap" : ""}`}>
         <div
-          className={`flex items-center justify-start gap-2 ${className ?? ""} ${isDesktop ? "flex-col" : "whitespace-nowrap"}`}
+          className={cn(
+            "flex items-center justify-start gap-2",
+            className,
+            isDesktop ? "flex-col" : "whitespace-nowrap",
+          )}
         >
           <Tooltip open={tooltip == "default"}>
             <TooltipTrigger asChild>
@@ -137,9 +145,11 @@ export function CameraGroupSelector({ className }: CameraGroupSelectorProps) {
                 <MdHome className="size-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent className="capitalize" side="right">
-              All Cameras
-            </TooltipContent>
+            <TooltipPortal>
+              <TooltipContent className="capitalize" side="right">
+                All Cameras
+              </TooltipContent>
+            </TooltipPortal>
           </Tooltip>
           {groups.map(([name, config]) => {
             return (
@@ -161,9 +171,11 @@ export function CameraGroupSelector({ className }: CameraGroupSelectorProps) {
                     {getIconForGroup(config.icon)}
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent className="capitalize" side="right">
-                  {name}
-                </TooltipContent>
+                <TooltipPortal>
+                  <TooltipContent className="capitalize" side="right">
+                    {name}
+                  </TooltipContent>
+                </TooltipPortal>
               </Tooltip>
             );
           })}
@@ -188,6 +200,7 @@ type NewGroupDialogProps = {
   currentGroups: [string, CameraGroupConfig][];
   activeGroup?: string;
   setGroup: (value: string | undefined, replace?: boolean | undefined) => void;
+  deleteGroup: () => void;
 };
 function NewGroupDialog({
   open,
@@ -195,6 +208,7 @@ function NewGroupDialog({
   currentGroups,
   activeGroup,
   setGroup,
+  deleteGroup,
 }: NewGroupDialogProps) {
   const { mutate: updateConfig } = useSWR<FrigateConfig>("config");
 
@@ -215,11 +229,16 @@ function NewGroupDialog({
   const [editState, setEditState] = useState<"none" | "add" | "edit">("none");
   const [isLoading, setIsLoading] = useState(false);
 
+  const [, , , deleteGridLayout] = usePersistence(
+    `${activeGroup}-draggable-layout`,
+  );
+
   // callbacks
 
   const onDeleteGroup = useCallback(
     async (name: string) => {
-      // TODO: reset order on groups when deleting
+      deleteGridLayout();
+      deleteGroup();
 
       await axios
         .put(`config/set?camera_groups.${name}`, { requires_restart: 0 })
@@ -250,7 +269,14 @@ function NewGroupDialog({
           setIsLoading(false);
         });
     },
-    [updateConfig, activeGroup, setGroup, setOpen],
+    [
+      updateConfig,
+      activeGroup,
+      setGroup,
+      setOpen,
+      deleteGroup,
+      deleteGridLayout,
+    ],
   );
 
   const onSave = () => {
@@ -469,7 +495,11 @@ export function CameraGroupEdit({
         {
           message: "Camera group name already exists.",
         },
-      ),
+      )
+      .refine((value: string) => value.toLowerCase() !== "default", {
+        message: "Invalid camera group name.",
+      }),
+
     cameras: z.array(z.string()).min(2, {
       message: "You must select at least two cameras.",
     }),
@@ -563,7 +593,7 @@ export function CameraGroupEdit({
         />
 
         <Separator className="flex my-2 bg-secondary" />
-        <div className="max-h-[40dvh] overflow-y-auto">
+        <div className="max-h-[25dvh] md:max-h-[40dvh] overflow-y-auto">
           <FormField
             control={form.control}
             name="cameras"

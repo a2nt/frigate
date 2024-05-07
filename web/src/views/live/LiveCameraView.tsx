@@ -98,7 +98,7 @@ export default function LiveCameraView({ camera }: LiveCameraViewProps) {
 
       let clientX;
       let clientY;
-      if (e.nativeEvent instanceof TouchEvent) {
+      if ("TouchEvent" in window && e.nativeEvent instanceof TouchEvent) {
         clientX = e.nativeEvent.touches[0].clientX;
         clientY = e.nativeEvent.touches[0].clientY;
       } else if (e.nativeEvent instanceof MouseEvent) {
@@ -545,7 +545,7 @@ function PtzControlPanel({
               <BsThreeDotsVertical />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent>
+          <DropdownMenuContent className="max-h-[40dvh] overflow-y-auto">
             {ptz?.presets.map((preset) => {
               return (
                 <DropdownMenuItem
