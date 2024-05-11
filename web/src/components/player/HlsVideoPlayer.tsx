@@ -12,6 +12,7 @@ import VideoControls from "./VideoControls";
 import { VideoResolutionType } from "@/types/live";
 import { AxiosResponse } from "axios";
 import { toast } from "sonner";
+import { useOverlayState } from "@/hooks/use-overlay-state";
 
 // Android native hls does not seek correctly
 const USE_NATIVE_HLS = !isAndroid;
@@ -104,8 +105,8 @@ export default function HlsVideoPlayer({
   // controls
 
   const [isPlaying, setIsPlaying] = useState(true);
-  const [muted, setMuted] = useState(true);
-  const [volume, setVolume] = useState(1.0);
+  const [muted, setMuted] = useOverlayState("playerMuted", true);
+  const [volume, setVolume] = useOverlayState("playerVolume", 1.0);
   const [mobileCtrlTimeout, setMobileCtrlTimeout] = useState<NodeJS.Timeout>();
   const [controls, setControls] = useState(isMobile);
   const [controlsOpen, setControlsOpen] = useState(false);
@@ -155,7 +156,7 @@ export default function HlsVideoPlayer({
           fullscreen: !isIOS,
         }}
         setControlsOpen={setControlsOpen}
-        setMuted={setMuted}
+        setMuted={(muted) => setMuted(muted, true)}
         playbackRate={videoRef.current?.playbackRate ?? 1}
         hotKeys={hotKeys}
         onPlayPause={(play) => {
@@ -221,7 +222,9 @@ export default function HlsVideoPlayer({
           controls={false}
           playsInline
           muted={muted}
-          onVolumeChange={() => setVolume(videoRef.current?.volume ?? 1.0)}
+          onVolumeChange={() =>
+            setVolume(videoRef.current?.volume ?? 1.0, true)
+          }
           onPlay={() => {
             setIsPlaying(true);
 
@@ -244,7 +247,13 @@ export default function HlsVideoPlayer({
               : undefined
           }
           onLoadedData={onPlayerLoaded}
-          onLoadedMetadata={handleLoadedMetadata}
+          onLoadedMetadata={() => {
+            handleLoadedMetadata();
+
+            if (videoRef.current && volume) {
+              videoRef.current.volume = volume;
+            }
+          }}
           onEnded={onClipEnded}
           onError={(e) => {
             if (
