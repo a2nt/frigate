@@ -31,6 +31,7 @@ class ModelTypeEnum(str, Enum):
     yolox = "yolox"
     yolov5 = "yolov5"
     yolov8 = "yolov8"
+    yolonas = "yolonas"
 
 class ModelConfig(BaseModel):
     path: Optional[str] = Field(None, title="Custom Object detection model path.")

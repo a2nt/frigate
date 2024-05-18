@@ -21,7 +21,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useResizeObserver } from "@/hooks/resize-observer";
 import useKeyboardListener from "@/hooks/use-keyboard-listener";
 import { CameraConfig } from "@/types/frigateConfig";
-import { VideoResolutionType } from "@/types/live";
+import { LiveStreamMetadata, VideoResolutionType } from "@/types/live";
 import { CameraPtzInfo } from "@/types/ptz";
 import { RecordingStartingPoint } from "@/types/record";
 import React, {
@@ -36,6 +36,7 @@ import {
   isIOS,
   isMobile,
   isSafari,
+  isTablet,
   useMobileOrientation,
 } from "react-device-detect";
 import { BsThreeDotsVertical } from "react-icons/bs";
@@ -82,6 +83,40 @@ export default function LiveCameraView({ camera }: LiveCameraViewProps) {
   const mainRef = useRef<HTMLDivElement | null>(null);
   const [{ width: windowWidth, height: windowHeight }] =
     useResizeObserver(window);
+
+  // supported features
+
+  const { data: cameraMetadata } = useSWR<LiveStreamMetadata>(
+    `go2rtc/streams/${camera.live.stream_name}`,
+    {
+      revalidateOnFocus: false,
+    },
+  );
+
+  const supports2WayTalk = useMemo(() => {
+    if (!window.isSecureContext || !cameraMetadata) {
+      return false;
+    }
+
+    return (
+      cameraMetadata.producers.find(
+        (prod) =>
+          prod.medias && prod.medias.find((media) => media.includes("audio, sendonly")) != undefined,
+      ) != undefined
+    );
+  }, [cameraMetadata]);
+  const supportsAudioOutput = useMemo(() => {
+    if (!cameraMetadata) {
+      return false;
+    }
+
+    return (
+      cameraMetadata.producers.find(
+        (prod) =>
+          prod.medias && prod.medias.find((media) => media.includes("audio, recvonly")) != undefined,
+      ) != undefined
+    );
+  }, [cameraMetadata])
 
   // click overlay for ptzs
 
@@ -306,7 +341,7 @@ export default function LiveCameraView({ camera }: LiveCameraViewProps) {
                   }}
                 />
               )}
-              {window.isSecureContext && (
+              {supports2WayTalk && (
                 <CameraFeatureToggle
                   className="p-2 md:p-0"
                   variant={fullscreen ? "overlay" : "primary"}
@@ -316,14 +351,14 @@ export default function LiveCameraView({ camera }: LiveCameraViewProps) {
                   onClick={() => setMic(!mic)}
                 />
               )}
-              <CameraFeatureToggle
+              {supportsAudioOutput && <CameraFeatureToggle
                 className="p-2 md:p-0"
                 variant={fullscreen ? "overlay" : "primary"}
                 Icon={audio ? GiSpeaker : GiSpeakerOff}
                 isActive={audio}
                 title={`${audio ? "Disable" : "Enable"} Camera Audio`}
                 onClick={() => setAudio(!audio)}
-              />
+              />}
               <FrigateCameraFeatures
                 camera={camera.name}
                 audioDetectEnabled={camera.audio.enabled_in_config}
@@ -588,7 +623,7 @@ function FrigateCameraFeatures({
     useAutotrackingState(camera);
 
   // desktop shows icons part of row
-  if (isDesktop) {
+  if (isDesktop || isTablet) {
     return (
       <>
         <CameraFeatureToggle
