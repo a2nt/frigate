@@ -135,6 +135,7 @@ class AuthConfig(FrigateBaseModel):
     cookie_name: str = Field(
         default="frigate_token", title="Name for jwt token cookie", pattern=r"^[a-z]_*$"
     )
+    cookie_secure: bool = Field(default=False, title="Set secure flag on cookie")
     session_length: int = Field(
         default=86400, title="Session length for jwt session tokens", ge=60
     )
@@ -1440,6 +1441,12 @@ class FrigateConfig(FrigateBaseModel):
                         if stream_info.get("hevc")
                         else False
                     )
+
+            # Warn if detect fps > 10
+            if camera_config.detect.fps > 10:
+                logger.warning(
+                    f"{camera_config.name} detect fps is set to {camera_config.detect.fps}. This does NOT need to match your camera's frame rate. High values could lead to reduced performance. Recommended value is 5."
+                )
 
             # Default min_initialized configuration
             min_initialized = int(camera_config.detect.fps / 2)

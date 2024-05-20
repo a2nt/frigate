@@ -20,7 +20,7 @@ import {
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useResizeObserver } from "@/hooks/resize-observer";
 import useKeyboardListener from "@/hooks/use-keyboard-listener";
-import { CameraConfig } from "@/types/frigateConfig";
+import { CameraConfig, FrigateConfig } from "@/types/frigateConfig";
 import { LiveStreamMetadata, VideoResolutionType } from "@/types/live";
 import { CameraPtzInfo } from "@/types/ptz";
 import { RecordingStartingPoint } from "@/types/record";
@@ -75,9 +75,13 @@ import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import useSWR from "swr";
 
 type LiveCameraViewProps = {
+  config?: FrigateConfig;
   camera: CameraConfig;
 };
-export default function LiveCameraView({ camera }: LiveCameraViewProps) {
+export default function LiveCameraView({
+  config,
+  camera,
+}: LiveCameraViewProps) {
   const navigate = useNavigate();
   const { isPortrait } = useMobileOrientation();
   const mainRef = useRef<HTMLDivElement | null>(null);
@@ -86,8 +90,17 @@ export default function LiveCameraView({ camera }: LiveCameraViewProps) {
 
   // supported features
 
+  const isRestreamed = useMemo(
+    () =>
+      config &&
+      Object.keys(config.go2rtc.streams || {}).includes(
+        camera.live.stream_name,
+      ),
+    [camera, config],
+  );
+
   const { data: cameraMetadata } = useSWR<LiveStreamMetadata>(
-    `go2rtc/streams/${camera.live.stream_name}`,
+    isRestreamed ? `go2rtc/streams/${camera.live.stream_name}` : null,
     {
       revalidateOnFocus: false,
     },
@@ -101,7 +114,9 @@ export default function LiveCameraView({ camera }: LiveCameraViewProps) {
     return (
       cameraMetadata.producers.find(
         (prod) =>
-          prod.medias && prod.medias.find((media) => media.includes("audio, sendonly")) != undefined,
+          prod.medias &&
+          prod.medias.find((media) => media.includes("audio, sendonly")) !=
+            undefined,
       ) != undefined
     );
   }, [cameraMetadata]);
@@ -113,10 +128,12 @@ export default function LiveCameraView({ camera }: LiveCameraViewProps) {
     return (
       cameraMetadata.producers.find(
         (prod) =>
-          prod.medias && prod.medias.find((media) => media.includes("audio, recvonly")) != undefined,
+          prod.medias &&
+          prod.medias.find((media) => media.includes("audio, recvonly")) !=
+            undefined,
       ) != undefined
     );
-  }, [cameraMetadata])
+  }, [cameraMetadata]);
 
   // click overlay for ptzs
 
@@ -351,14 +368,16 @@ export default function LiveCameraView({ camera }: LiveCameraViewProps) {
                   onClick={() => setMic(!mic)}
                 />
               )}
-              {supportsAudioOutput && <CameraFeatureToggle
-                className="p-2 md:p-0"
-                variant={fullscreen ? "overlay" : "primary"}
-                Icon={audio ? GiSpeaker : GiSpeakerOff}
-                isActive={audio}
-                title={`${audio ? "Disable" : "Enable"} Camera Audio`}
-                onClick={() => setAudio(!audio)}
-              />}
+              {supportsAudioOutput && (
+                <CameraFeatureToggle
+                  className="p-2 md:p-0"
+                  variant={fullscreen ? "overlay" : "primary"}
+                  Icon={audio ? GiSpeaker : GiSpeakerOff}
+                  isActive={audio}
+                  title={`${audio ? "Disable" : "Enable"} Camera Audio`}
+                  onClick={() => setAudio(!audio)}
+                />
+              )}
               <FrigateCameraFeatures
                 camera={camera.name}
                 audioDetectEnabled={camera.audio.enabled_in_config}

@@ -115,23 +115,21 @@ export default function GeneralSettings({ className }: GeneralSettingsProps) {
     <>
       <div className={className}>
         <Container>
-          <Trigger asChild>
-            <a href="#">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div
-                    className={`flex flex-col items-center justify-center ${isDesktop ? "cursor-pointer rounded-lg bg-secondary text-secondary-foreground hover:bg-muted" : "text-secondary-foreground"}`}
-                  >
-                    <LuSettings className="size-5 md:m-[6px]" />
-                  </div>
-                </TooltipTrigger>
-                <TooltipPortal>
-                  <TooltipContent side="right">
-                    <p>Settings</p>
-                  </TooltipContent>
-                </TooltipPortal>
-              </Tooltip>
-            </a>
+          <Trigger>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div
+                  className={`flex flex-col items-center justify-center ${isDesktop ? "cursor-pointer rounded-lg bg-secondary text-secondary-foreground hover:bg-muted" : "text-secondary-foreground"}`}
+                >
+                  <LuSettings className="size-5 md:m-[6px]" />
+                </div>
+              </TooltipTrigger>
+              <TooltipPortal>
+                <TooltipContent side="right">
+                  <p>Settings</p>
+                </TooltipContent>
+              </TooltipPortal>
+            </Tooltip>
           </Trigger>
           <Content
             className={
