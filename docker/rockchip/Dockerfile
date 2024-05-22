@@ -17,15 +17,7 @@ RUN --mount=type=bind,from=rk-wheels,source=/rk-wheels,target=/deps/rk-wheels \
 
 WORKDIR /opt/frigate/
 COPY --from=rootfs / /
-
-ADD https://github.com/MarcA711/rknn-toolkit2/releases/download/v1.6.0/librknnrt.so /usr/lib/
-
-# TODO removed models, other models support may need to be added back in
-ADD https://github.com/MarcA711/rknn-models/releases/download/v1.6.0-yolov8-default/default-yolov8n-rk3562.rknn /models/rknn/
-ADD https://github.com/MarcA711/rknn-models/releases/download/v1.6.0-yolov8-default/default-yolov8n-rk3566.rknn /models/rknn/
-ADD https://github.com/MarcA711/rknn-models/releases/download/v1.6.0-yolov8-default/default-yolov8n-rk3568.rknn /models/rknn/
-ADD https://github.com/MarcA711/rknn-models/releases/download/v1.6.0-yolov8-default/default-yolov8n-rk3588.rknn /models/rknn/
-
+ADD https://github.com/MarcA711/rknn-toolkit2/releases/download/v2.0.0/librknnrt.so /usr/lib/
 
 RUN rm -rf /usr/lib/btbn-ffmpeg/bin/ffmpeg
 RUN rm -rf /usr/lib/btbn-ffmpeg/bin/ffprobe
