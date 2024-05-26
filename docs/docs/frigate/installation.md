@@ -13,7 +13,7 @@ Frigate is a Docker container that can be run on any Docker host including as a 
 
 ### Operating System
 
-Frigate runs best with docker installed on bare metal debian-based distributions. For ideal performance, Frigate needs access to underlying hardware for the Coral and GPU devices. Running Frigate in a VM on top of Proxmox, ESXi, Virtualbox, etc. is not recommended. The virtualization layer often introduces a sizable amount of overhead for communication with Coral devices, but [not in all circumstances](https://github.com/blakeblackshear/frigate/discussions/1837).
+Frigate runs best with Docker installed on bare metal Debian-based distributions. For ideal performance, Frigate needs low overhead access to underlying hardware for the Coral and GPU devices. Running Frigate in a VM on top of Proxmox, ESXi, Virtualbox, etc. is not recommended though [some users have had success with Proxmox](#proxmox).
 
 Windows is not officially supported, but some users have had success getting it to run under WSL or Virtualbox. Getting the GPU and/or Coral devices properly passed to Frigate may be difficult or impossible. Search previous discussions or issues for help.
 
@@ -94,6 +94,56 @@ The shm size cannot be set per container for Home Assistant add-ons. However, th
 By default, the Raspberry Pi limits the amount of memory available to the GPU. In order to use ffmpeg hardware acceleration, you must increase the available memory by setting `gpu_mem` to the maximum recommended value in `config.txt` as described in the [official docs](https://www.raspberrypi.org/documentation/computers/config_txt.html#memory-options).
 
 Additionally, the USB Coral draws a considerable amount of power. If using any other USB devices such as an SSD, you will experience instability due to the Pi not providing enough power to USB devices. You will need to purchase an external USB hub with it's own power supply. Some have reported success with <a href="https://amzn.to/3a2mH0P" target="_blank" rel="nofollow noopener sponsored">this</a> (affiliate link).
+
+### Rockchip platform
+
+Make sure that you use a linux distribution that comes with the rockchip BSP kernel 5.10 or 6.1 and necessary drivers (especially rkvdec2 and rknpu). To check, enter the following commands:
+
+```
+$ uname -r
+5.10.xxx-rockchip # or 6.1.xxx; the -rockchip suffix is important
+$ ls /dev/dri
+by-path  card0  card1  renderD128  renderD129 # should list renderD128 (VPU) and renderD129 (NPU)
+$ sudo cat /sys/kernel/debug/rknpu/version
+RKNPU driver: v0.9.2 # or later version
+```
+
+I recommend [Joshua Riek's Ubuntu for Rockchip](https://github.com/Joshua-Riek/ubuntu-rockchip), if your board is supported.
+
+#### Setup
+
+Follow Frigate's default installation instructions, but use a docker image with `-rk` suffix for example `ghcr.io/blakeblackshear/frigate:stable-rk`.
+
+Next, you need to grant docker permissions to access your hardware:
+
+- During the configuration process, you should run docker in privileged mode to avoid any errors due to insufficient permissions. To do so, add `privileged: true` to your `docker-compose.yml` file or the `--privileged` flag to your docker run command.
+- After everything works, you should only grant necessary permissions to increase security. Disable the privileged mode and add the lines below to your `docker-compose.yml` file:
+
+```yaml
+security_opt:
+  - apparmor=unconfined
+  - systempaths=unconfined
+devices:
+  - /dev/dri
+  - /dev/dma_heap
+  - /dev/rga
+  - /dev/mpp_service
+```
+
+or add these options to your `docker run` command:
+
+```
+--security-opt systempaths=unconfined \
+--security-opt apparmor=unconfined \
+--device /dev/dri \
+--device /dev/dma_heap \
+--device /dev/rga \
+--device /dev/mpp_service
+```
+
+#### Configuration
+
+Next, you should configure [hardware object detection](/configuration/object_detectors#rockchip-platform) and [hardware video processing](/configuration/hardware_acceleration#rockchip-platform).
 
 ## Docker
 
@@ -218,7 +268,16 @@ To install make sure you have the [community app plugin here](https://forums.unr
 
 ## Proxmox
 
-It is recommended to run Frigate in LXC for maximum performance. See [this discussion](https://github.com/blakeblackshear/frigate/discussions/1111) for more information.
+It is recommended to run Frigate in LXC, rather than in a VM, for maximum performance. The setup can be complex so be prepared to read the Proxmox and LXC documentation. Suggestions include:
+
+- For Intel-based hardware acceleration, to allow access to the `/dev/dri/renderD128` device with major number 226 and minor number 128, add the following lines to the `/etc/pve/lxc/<id>.conf` LXC configuration:
+  - `lxc.cgroup2.devices.allow: c 226:128 rwm`
+  - `lxc.mount.entry: /dev/dri/renderD128 dev/dri/renderD128 none bind,optional,create=file`
+- The LXC configuration will likely also need `features: fuse=1,nesting=1`. This allows running a Docker container in an LXC container (`nesting`) and prevents duplicated files and wasted storage (`fuse`).
+- Successfully passing hardware devices through multiple levels of containerization (LXC then Docker) can be difficult. Many people make devices like `/dev/dri/renderD128` world-readable in the host or run Frigate in a privileged LXC container.
+- The virtualization layer often introduces a sizable amount of overhead for communication with Coral devices, but [not in all circumstances](https://github.com/blakeblackshear/frigate/discussions/1837).
+
+See the [Proxmox LXC discussion](https://github.com/blakeblackshear/frigate/discussions/5773) for more general information.
 
 ## ESXi
 
@@ -256,7 +315,7 @@ There may be other services running on your NAS that are using the same ports th
 
 You need to configure 2 paths:
 
-- The location of your config file in yaml format, this needs to be file and you need to go to the location of where your config.yml is located, this will be different depending on your NAS folder structure e.g. `/docker/frigate/config/config.yml` will mount to `/config/config.yml` within the container.
+- The location of your config directory which will be different depending on your NAS folder structure e.g. `/docker/frigate/config` will mount to `/config` within the container.
 - The location on your NAS where the recordings will be saved this needs to be a folder e.g. `/docker/volumes/frigate-0-media`
 
 ![image](https://user-images.githubusercontent.com/4516296/232585872-44431d15-55e0-4004-b78b-1e512702b911.png)

@@ -288,10 +288,10 @@ These instructions were originally based on the [Jellyfin documentation](https:/
 
 ## NVIDIA Jetson (Orin AGX, Orin NX, Orin Nano\*, Xavier AGX, Xavier NX, TX2, TX1, Nano)
 
-A separate set of docker images is available that is based on Jetpack/L4T. They comes with an `ffmpeg` build
+A separate set of docker images is available that is based on Jetpack/L4T. They come with an `ffmpeg` build
 with codecs that use the Jetson's dedicated media engine. If your Jetson host is running Jetpack 4.6, use the
-`frigate-tensorrt-jp4` image, or if your Jetson host is running Jetpack 5.0+, use the `frigate-tensorrt-jp5`
-image. Note that the Orin Nano has no video encoder, so frigate will use software encoding on this platform,
+`stable-tensorrt-jp4` tagged image, or if your Jetson host is running Jetpack 5.0+, use the `stable-tensorrt-jp5`
+tagged image. Note that the Orin Nano has no video encoder, so frigate will use software encoding on this platform,
 but the image will still allow hardware decoding and tensorrt object detection.
 
 You will need to use the image with the nvidia container runtime:
@@ -302,7 +302,7 @@ You will need to use the image with the nvidia container runtime:
 docker run -d \
   ...
   --runtime nvidia
-  ghcr.io/blakeblackshear/frigate-tensorrt-jp5
+  ghcr.io/blakeblackshear/frigate:stable-tensorrt-jp5
 ```
 
 ### Docker Compose - Jetson
@@ -312,7 +312,7 @@ version: '2.4'
 services:
   frigate:
     ...
-    image: ghcr.io/blakeblackshear/frigate-tensorrt-jp5
+    image: ghcr.io/blakeblackshear/frigate:stable-tensorrt-jp5
     runtime: nvidia   # Add this
 ```
 
@@ -362,39 +362,11 @@ that NVDEC/NVDEC1 are in use.
 
 ## Rockchip platform
 
-Hardware accelerated video de-/encoding is supported on all Rockchip SoCs using [Nyanmisaka's FFmpeg Fork](https://github.com/nyanmisaka/ffmpeg-rockchip) based on [Rockchip's mpp library](https://github.com/rockchip-linux/mpp).
+Hardware accelerated video de-/encoding is supported on all Rockchip SoCs using [Nyanmisaka's FFmpeg 6.1 Fork](https://github.com/nyanmisaka/ffmpeg-rockchip) based on [Rockchip's mpp library](https://github.com/rockchip-linux/mpp).
 
 ### Prerequisites
 
-Make sure that you use a linux distribution that comes with the rockchip BSP kernel 5.10 or 6.1 and rkvdec2 driver. To check, enter the following commands:
-
-```
-$ uname -r
-5.10.xxx-rockchip # or 6.1.xxx; the -rockchip suffix is important
-$ ls /dev/dri
-by-path  card0  card1  renderD128  renderD129 # should list renderD128
-```
-
-I recommend [Joshua Riek's Ubuntu for Rockchip](https://github.com/Joshua-Riek/ubuntu-rockchip), if your board is supported.
-
-### Setup
-
-Follow Frigate's default installation instructions, but use a docker image with `-rk` suffix for example `ghcr.io/blakeblackshear/frigate:stable-rk`.
-
-Next, you need to grant docker permissions to access your hardware:
-- During the configuration process, you should run docker in privileged mode to avoid any errors due to insufficient permissions. To do so, add `privileged: true` to your `docker-compose.yml` file or the `--privileged` flag to your docker run command.
-- After everything works, you should only grant necessary permissions to increase security. Add the lines below to your `docker-compose.yml` file or the following options to your docker run command: `--security-opt systempaths=unconfined --security-opt apparmor=unconfined --device /dev/dri:/dev/dri --device /dev/dma_heap:/dev/dma_heap --device /dev/rga:/dev/rga --device /dev/mpp_service:/dev/mpp_service`:
-
-```yaml
-    security_opt:
-      - apparmor=unconfined
-      - systempaths=unconfined
-    devices:
-      - /dev/dri:/dev/dri
-      - /dev/dma_heap:/dev/dma_heap
-      - /dev/rga:/dev/rga
-      - /dev/mpp_service:/dev/mpp_service
-```
+Make sure to follow the [Rockchip specific installation instructions](/frigate/installation#rockchip-platform).
 
 ### Configuration
 
