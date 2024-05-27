@@ -28,6 +28,7 @@ type LivePlayerProps = {
   pip?: boolean;
   onClick?: () => void;
   setFullResolution?: React.Dispatch<React.SetStateAction<VideoResolutionType>>;
+  containerRef?: React.MutableRefObject<HTMLDivElement | null>;
 };
 
 export default function LivePlayer({
@@ -43,6 +44,7 @@ export default function LivePlayer({
   pip,
   onClick,
   setFullResolution,
+  containerRef,
 }: LivePlayerProps) {
   // camera activity
 
@@ -80,7 +82,7 @@ export default function LivePlayer({
   // camera still state
 
   const stillReloadInterval = useMemo(() => {
-    if (!windowVisible) {
+    if (!windowVisible || offline) {
       return -1; // no reason to update the image when the window is not visible
     }
 
@@ -88,12 +90,12 @@ export default function LivePlayer({
       return 60000;
     }
 
-    if (cameraActive) {
+    if (activeMotion || activeTracking) {
       return 200;
     }
 
     return 30000;
-  }, [liveReady, cameraActive, windowVisible]);
+  }, [liveReady, activeMotion, activeTracking, offline, windowVisible]);
 
   if (!cameraConfig) {
     return <ActivityIndicator />;
@@ -135,14 +137,19 @@ export default function LivePlayer({
       );
     }
   } else if (liveMode == "jsmpeg") {
-    player = (
-      <JSMpegPlayer
-        className="flex size-full justify-center overflow-hidden rounded-lg md:rounded-2xl"
-        camera={cameraConfig.live.stream_name}
-        width={cameraConfig.detect.width}
-        height={cameraConfig.detect.height}
-      />
-    );
+    if (cameraActive || !showStillWithoutActivity) {
+      player = (
+        <JSMpegPlayer
+          className="flex justify-center overflow-hidden rounded-lg md:rounded-2xl"
+          camera={cameraConfig.live.stream_name}
+          width={cameraConfig.detect.width}
+          height={cameraConfig.detect.height}
+          containerRef={containerRef}
+        />
+      );
+    } else {
+      player = null;
+    }
   } else {
     player = <ActivityIndicator />;
   }
@@ -152,9 +159,7 @@ export default function LivePlayer({
       ref={cameraRef}
       data-camera={cameraConfig.name}
       className={cn(
-        "relative flex justify-center",
-        liveMode === "jsmpeg" ? "size-full" : "w-full",
-        "cursor-pointer outline",
+        "relative flex w-full cursor-pointer justify-center outline",
         activeTracking
           ? "outline-3 rounded-lg shadow-severity_alert outline-severity_alert md:rounded-2xl"
           : "outline-0 outline-background",

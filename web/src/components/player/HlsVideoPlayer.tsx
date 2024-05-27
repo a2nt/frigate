@@ -267,8 +267,8 @@ export default function HlsVideoPlayer({
               ? onTimeUpdate(videoRef.current.currentTime)
               : undefined
           }
-          onLoadedData={onPlayerLoaded}
-          onLoadedMetadata={() => {
+          onLoadedData={() => {
+            onPlayerLoaded?.();
             handleLoadedMetadata();
 
             if (videoRef.current) {
