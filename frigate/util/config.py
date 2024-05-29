@@ -1,5 +1,6 @@
 """configuration utils."""
 
+import asyncio
 import logging
 import os
 import shutil
@@ -8,6 +9,7 @@ from typing import Optional, Union
 from ruamel.yaml import YAML
 
 from frigate.const import CONFIG_DIR, EXPORT_DIR
+from frigate.util.services import get_video_properties
 
 logger = logging.getLogger(__name__)
 
@@ -85,8 +87,12 @@ def migrate_014(config: dict[str, dict[str, any]]) -> dict[str, dict[str, any]]:
         if not new_config["record"]:
             del new_config["record"]
 
-        if new_config.get("ui", {}).get("use_experimental"):
-            del new_config["ui"]["experimental"]
+        if new_config.get("ui"):
+            if new_config["ui"].get("use_experimental"):
+                del new_config["ui"]["experimental"]
+
+            if new_config["ui"].get("live_mode"):
+                del new_config["ui"]["live_mode"]
 
             if not new_config["ui"]:
                 del new_config["ui"]
@@ -194,3 +200,16 @@ def get_relative_coordinates(
         return mask
 
     return mask
+
+
+class StreamInfoRetriever:
+    def __init__(self) -> None:
+        self.stream_cache: dict[str, tuple[int, int]] = {}
+
+    def get_stream_info(self, path: str) -> str:
+        if path in self.stream_cache:
+            return self.stream_cache[path]
+
+        info = asyncio.run(get_video_properties(path))
+        self.stream_cache[path] = info
+        return info
