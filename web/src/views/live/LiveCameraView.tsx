@@ -583,7 +583,7 @@ function PtzControlPanel({
         </>
       )}
       {(ptz?.presets?.length ?? 0) > 0 && (
-        <DropdownMenu>
+        <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
             <Button>
               <BsThreeDotsVertical />
@@ -594,6 +594,7 @@ function PtzControlPanel({
               return (
                 <DropdownMenuItem
                   key={preset}
+                  className="cursor-pointer"
                   onSelect={() => sendPtz(`preset_${preset}`)}
                 >
                   {preset}
