@@ -163,7 +163,7 @@ export default function LiveDashboardView({
 
   return (
     <div
-      className="size-full overflow-y-auto px-1 pt-2 md:p-2"
+      className="scrollbar-container size-full overflow-y-auto px-1 pt-2 md:p-2"
       ref={containerRef}
     >
       {isMobile && (
@@ -224,7 +224,13 @@ export default function LiveDashboardView({
           <TooltipProvider>
             <div className="flex items-center gap-2 px-1">
               {events.map((event) => {
-                return <AnimatedEventCard key={event.id} event={event} />;
+                return (
+                  <AnimatedEventCard
+                    key={event.id}
+                    event={event}
+                    selectedGroup={cameraGroup}
+                  />
+                );
               })}
             </div>
           </TooltipProvider>
