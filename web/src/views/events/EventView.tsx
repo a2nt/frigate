@@ -29,8 +29,8 @@ import {
   useRef,
   useState,
 } from "react";
-import { isDesktop, isMobile, isTablet } from "react-device-detect";
-import { LuFolderCheck } from "react-icons/lu";
+import { isDesktop, isMobile } from "react-device-detect";
+import { LuFolderCheck, LuFolderX } from "react-icons/lu";
 import { MdCircle } from "react-icons/md";
 import useSWR from "swr";
 import MotionReviewTimeline from "@/components/timeline/MotionReviewTimeline";
@@ -858,6 +858,15 @@ function MotionReview({
     ],
   );
 
+  if (motionData?.length === 0) {
+    return (
+      <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center text-center">
+        <LuFolderX className="size-16" />
+        No motion data found
+      </div>
+    );
+  }
+
   if (!relevantPreviews) {
     return <ActivityIndicator />;
   }
@@ -869,8 +878,11 @@ function MotionReview({
           ref={contentRef}
           className={cn(
             "no-scrollbar grid w-full grid-cols-1",
-            (reviewCameras.length > 3 || isTablet || isDesktop) &&
-              "grid-cols-2",
+            isMobile && "landscape:grid-cols-2",
+            reviewCameras.length > 3 &&
+              isMobile &&
+              "portrait:md:grid-cols-2 landscape:md:grid-cols-3",
+            isDesktop && "md:grid-cols-3",
             "gap-2 overflow-auto px-1 md:mx-2 md:gap-4 xl:grid-cols-3 3xl:grid-cols-4",
           )}
         >
@@ -880,10 +892,10 @@ function MotionReview({
             const aspectRatio = camera.detect.width / camera.detect.height;
             if (aspectRatio > 2) {
               grow = "aspect-wide";
-              spans = reviewCameras.length > 3 && "col-span-2";
+              spans = "sm:col-span-2";
             } else if (aspectRatio < 1) {
-              grow = "md:h-full aspect-tall";
-              spans = "row-span-2";
+              grow = "h-full aspect-tall";
+              spans = "md:row-span-2";
             } else {
               grow = "aspect-video";
             }
