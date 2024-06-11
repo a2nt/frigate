@@ -85,7 +85,7 @@ export default function LivePlayer({
     }
 
     if (!cameraActive) {
-      setLiveReady(false);
+      setTimeout(() => setLiveReady(false), 500);
     }
     // live mode won't change
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -94,7 +94,7 @@ export default function LivePlayer({
   // camera still state
 
   const stillReloadInterval = useMemo(() => {
-    if (!windowVisible || offline) {
+    if (!windowVisible || offline || !showStillWithoutActivity) {
       return -1; // no reason to update the image when the window is not visible
     }
 
@@ -113,6 +113,7 @@ export default function LivePlayer({
     return 30000;
   }, [
     autoLive,
+    showStillWithoutActivity,
     liveReady,
     activeMotion,
     activeTracking,
@@ -172,6 +173,7 @@ export default function LivePlayer({
           width={cameraConfig.detect.width}
           height={cameraConfig.detect.height}
           containerRef={containerRef}
+          onPlaying={() => setLiveReady(true)}
         />
       );
     } else {
@@ -187,7 +189,8 @@ export default function LivePlayer({
       data-camera={cameraConfig.name}
       className={cn(
         "relative flex w-full cursor-pointer justify-center outline",
-        activeTracking
+        activeTracking &&
+          ((showStillWithoutActivity && !liveReady) || liveReady)
           ? "outline-3 rounded-lg shadow-severity_alert outline-severity_alert md:rounded-2xl"
           : "outline-0 outline-background",
         "transition-all duration-500",
@@ -195,52 +198,60 @@ export default function LivePlayer({
       )}
       onClick={onClick}
     >
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-[30%] w-full rounded-lg bg-gradient-to-b from-black/20 to-transparent md:rounded-2xl"></div>
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-[10%] w-full rounded-lg bg-gradient-to-t from-black/20 to-transparent md:rounded-2xl"></div>
-      {player}
-
-      {objects.length > 0 && (
-        <div className="absolute left-0 top-2 z-40">
-          <Tooltip>
-            <div className="flex">
-              <TooltipTrigger asChild>
-                <div className="mx-3 pb-1 text-sm text-white">
-                  <Chip
-                    className={`z-0 flex items-start justify-between space-x-1 bg-gray-500 bg-gradient-to-br from-gray-400 to-gray-500`}
-                  >
-                    {[
-                      ...new Set([
-                        ...(objects || []).map(({ label }) => label),
-                      ]),
-                    ]
-                      .map((label) => {
-                        return getIconForLabel(label, "size-3 text-white");
-                      })
-                      .sort()}
-                  </Chip>
-                </div>
-              </TooltipTrigger>
-            </div>
-            <TooltipContent className="capitalize">
-              {[
-                ...new Set([
-                  ...(objects || []).map(({ label, sub_label }) =>
-                    label.endsWith("verified") ? sub_label : label,
-                  ),
-                ]),
-              ]
-                .filter(
-                  (label) =>
-                    label !== undefined && !label.includes("-verified"),
-                )
-                .map((label) => capitalizeFirstLetter(label))
-                .sort()
-                .join(", ")
-                .replaceAll("-verified", "")}
-            </TooltipContent>
-          </Tooltip>
-        </div>
+      {((showStillWithoutActivity && !liveReady) || liveReady) && (
+        <>
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-[30%] w-full rounded-lg bg-gradient-to-b from-black/20 to-transparent md:rounded-2xl"></div>
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-[10%] w-full rounded-lg bg-gradient-to-t from-black/20 to-transparent md:rounded-2xl"></div>
+        </>
       )}
+      {player}
+      {!offline && !showStillWithoutActivity && !liveReady && (
+        <ActivityIndicator />
+      )}
+
+      {((showStillWithoutActivity && !liveReady) || liveReady) &&
+        objects.length > 0 && (
+          <div className="absolute left-0 top-2 z-40">
+            <Tooltip>
+              <div className="flex">
+                <TooltipTrigger asChild>
+                  <div className="mx-3 pb-1 text-sm text-white">
+                    <Chip
+                      className={`z-0 flex items-start justify-between space-x-1 bg-gray-500 bg-gradient-to-br from-gray-400 to-gray-500`}
+                    >
+                      {[
+                        ...new Set([
+                          ...(objects || []).map(({ label }) => label),
+                        ]),
+                      ]
+                        .map((label) => {
+                          return getIconForLabel(label, "size-3 text-white");
+                        })
+                        .sort()}
+                    </Chip>
+                  </div>
+                </TooltipTrigger>
+              </div>
+              <TooltipContent className="capitalize">
+                {[
+                  ...new Set([
+                    ...(objects || []).map(({ label, sub_label }) =>
+                      label.endsWith("verified") ? sub_label : label,
+                    ),
+                  ]),
+                ]
+                  .filter(
+                    (label) =>
+                      label !== undefined && !label.includes("-verified"),
+                  )
+                  .map((label) => capitalizeFirstLetter(label))
+                  .sort()
+                  .join(", ")
+                  .replaceAll("-verified", "")}
+              </TooltipContent>
+            </Tooltip>
+          </div>
+        )}
 
       <div
         className={`absolute inset-0 w-full ${
@@ -252,14 +263,17 @@ export default function LivePlayer({
           camera={cameraConfig.name}
           showFps={false}
           reloadInterval={stillReloadInterval}
-          cameraClasses="relative w-full h-full flex justify-center"
+          cameraClasses="relative size-full flex justify-center"
         />
       </div>
 
       <div className="absolute right-2 top-2">
-        {autoLive && !offline && activeMotion && (
-          <MdCircle className="mr-2 size-2 animate-pulse text-danger shadow-danger drop-shadow-md" />
-        )}
+        {autoLive &&
+          !offline &&
+          activeMotion &&
+          ((showStillWithoutActivity && !liveReady) || liveReady) && (
+            <MdCircle className="mr-2 size-2 animate-pulse text-danger shadow-danger drop-shadow-md" />
+          )}
         {offline && (
           <Chip
             className={`z-0 flex items-start justify-between space-x-1 bg-gray-500 bg-gradient-to-br from-gray-400 to-gray-500 text-xs capitalize`}
