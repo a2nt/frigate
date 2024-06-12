@@ -30,6 +30,7 @@ import MobileReviewSettingsDrawer, {
 } from "../overlay/MobileReviewSettingsDrawer";
 import useOptimisticState from "@/hooks/use-optimistic-state";
 import FilterSwitch from "./FilterSwitch";
+import { FilterList } from "@/types/filter";
 
 const REVIEW_FILTERS = [
   "cameras",
@@ -53,7 +54,7 @@ type ReviewFilterGroupProps = {
   reviewSummary?: ReviewSummary;
   filter?: ReviewFilter;
   motionOnly: boolean;
-  filterLabels?: string[];
+  filterList?: FilterList;
   onUpdateFilter: (filter: ReviewFilter) => void;
   setMotionOnly: React.Dispatch<React.SetStateAction<boolean>>;
 };
@@ -64,15 +65,15 @@ export default function ReviewFilterGroup({
   reviewSummary,
   filter,
   motionOnly,
-  filterLabels,
+  filterList,
   onUpdateFilter,
   setMotionOnly,
 }: ReviewFilterGroupProps) {
   const { data: config } = useSWR<FrigateConfig>("config");
 
   const allLabels = useMemo<string[]>(() => {
-    if (filterLabels) {
-      return filterLabels;
+    if (filterList?.labels) {
+      return filterList.labels;
     }
 
     if (!config) {
@@ -99,14 +100,43 @@ export default function ReviewFilterGroup({
     });
 
     return [...labels].sort();
-  }, [config, filterLabels, filter]);
+  }, [config, filterList, filter]);
+
+  const allZones = useMemo<string[]>(() => {
+    if (filterList?.zones) {
+      return filterList.zones;
+    }
+
+    if (!config) {
+      return [];
+    }
+
+    const zones = new Set<string>();
+    const cameras = filter?.cameras || Object.keys(config.cameras);
+
+    cameras.forEach((camera) => {
+      if (camera == "birdseye") {
+        return;
+      }
+      const cameraConfig = config.cameras[camera];
+      cameraConfig.review.alerts.required_zones.forEach((zone) => {
+        zones.add(zone);
+      });
+      cameraConfig.review.detections.required_zones.forEach((zone) => {
+        zones.add(zone);
+      });
+    });
+
+    return [...zones].sort();
+  }, [config, filterList, filter]);
 
   const filterValues = useMemo(
     () => ({
       cameras: Object.keys(config?.cameras || {}),
       labels: Object.values(allLabels || {}),
+      zones: Object.values(allZones || {}),
     }),
-    [config, allLabels],
+    [config, allLabels, allZones],
   );
 
   const groups = useMemo(() => {
@@ -189,12 +219,17 @@ export default function ReviewFilterGroup({
           selectedLabels={filter?.labels}
           currentSeverity={currentSeverity}
           showAll={filter?.showAll == true}
+          allZones={filterValues.zones}
+          selectedZones={filter?.zones}
           setShowAll={(showAll) => {
             onUpdateFilter({ ...filter, showAll });
           }}
           updateLabelFilter={(newLabels) => {
             onUpdateFilter({ ...filter, labels: newLabels });
           }}
+          updateZoneFilter={(newZones) =>
+            onUpdateFilter({ ...filter, zones: newZones })
+          }
         />
       )}
       {isMobile && mobileSettingsFeatures.length > 0 && (
@@ -204,6 +239,7 @@ export default function ReviewFilterGroup({
           currentSeverity={currentSeverity}
           reviewSummary={reviewSummary}
           allLabels={allLabels}
+          allZones={allZones}
           onUpdateFilter={onUpdateFilter}
           // not applicable as exports are not used
           camera=""
@@ -495,33 +531,44 @@ type GeneralFilterButtonProps = {
   selectedLabels: string[] | undefined;
   currentSeverity?: ReviewSeverity;
   showAll: boolean;
+  allZones: string[];
+  selectedZones?: string[];
   setShowAll: (showAll: boolean) => void;
   updateLabelFilter: (labels: string[] | undefined) => void;
+  updateZoneFilter: (zones: string[] | undefined) => void;
 };
 function GeneralFilterButton({
   allLabels,
   selectedLabels,
   currentSeverity,
   showAll,
+  allZones,
+  selectedZones,
   setShowAll,
   updateLabelFilter,
+  updateZoneFilter,
 }: GeneralFilterButtonProps) {
   const [open, setOpen] = useState(false);
   const [currentLabels, setCurrentLabels] = useState<string[] | undefined>(
     selectedLabels,
   );
+  const [currentZones, setCurrentZones] = useState<string[] | undefined>(
+    selectedZones,
+  );
 
   const trigger = (
     <Button
       size="sm"
-      variant={selectedLabels?.length ? "select" : "default"}
+      variant={
+        selectedLabels?.length || selectedZones?.length ? "select" : "default"
+      }
       className="flex items-center gap-2 capitalize"
     >
       <FaFilter
-        className={`${selectedLabels?.length ? "text-selected-foreground" : "text-secondary-foreground"}`}
+        className={`${selectedLabels?.length || selectedZones?.length ? "text-selected-foreground" : "text-secondary-foreground"}`}
       />
       <div
-        className={`hidden md:block ${selectedLabels?.length ? "text-selected-foreground" : "text-primary"}`}
+        className={`hidden md:block ${selectedLabels?.length || selectedZones?.length ? "text-selected-foreground" : "text-primary"}`}
       >
         Filter
       </div>
@@ -534,6 +581,11 @@ function GeneralFilterButton({
       currentLabels={currentLabels}
       currentSeverity={currentSeverity}
       showAll={showAll}
+      allZones={allZones}
+      selectedZones={selectedZones}
+      currentZones={currentZones}
+      setCurrentZones={setCurrentZones}
+      updateZoneFilter={updateZoneFilter}
       setShowAll={setShowAll}
       updateLabelFilter={updateLabelFilter}
       setCurrentLabels={setCurrentLabels}
@@ -584,9 +636,14 @@ type GeneralFilterContentProps = {
   currentLabels: string[] | undefined;
   currentSeverity?: ReviewSeverity;
   showAll?: boolean;
+  allZones?: string[];
+  selectedZones?: string[];
+  currentZones?: string[];
   setShowAll?: (showAll: boolean) => void;
   updateLabelFilter: (labels: string[] | undefined) => void;
   setCurrentLabels: (labels: string[] | undefined) => void;
+  updateZoneFilter?: (zones: string[] | undefined) => void;
+  setCurrentZones?: (zones: string[] | undefined) => void;
   onClose: () => void;
 };
 export function GeneralFilterContent({
@@ -595,9 +652,14 @@ export function GeneralFilterContent({
   currentLabels,
   currentSeverity,
   showAll,
+  allZones,
+  selectedZones,
+  currentZones,
   setShowAll,
   updateLabelFilter,
   setCurrentLabels,
+  updateZoneFilter,
+  setCurrentZones,
   onClose,
 }: GeneralFilterContentProps) {
   return (
@@ -622,7 +684,7 @@ export function GeneralFilterContent({
             <DropdownMenuSeparator />
           </div>
         )}
-        <div className="my-2.5 flex items-center justify-between">
+        <div className="mb-5 mt-2.5 flex items-center justify-between">
           <Label
             className="mx-2 cursor-pointer text-primary"
             htmlFor="allLabels"
@@ -640,7 +702,6 @@ export function GeneralFilterContent({
             }}
           />
         </div>
-        <DropdownMenuSeparator />
         <div className="my-2.5 flex flex-col gap-2.5">
           {allLabels.map((item) => (
             <FilterSwitch
@@ -665,6 +726,58 @@ export function GeneralFilterContent({
             />
           ))}
         </div>
+
+        {allZones && setCurrentZones && (
+          <>
+            <DropdownMenuSeparator />
+            <div className="mb-5 mt-2.5 flex items-center justify-between">
+              <Label
+                className="mx-2 cursor-pointer text-primary"
+                htmlFor="allZones"
+              >
+                All Zones
+              </Label>
+              <Switch
+                className="ml-1"
+                id="allZones"
+                checked={currentZones == undefined}
+                onCheckedChange={(isChecked) => {
+                  if (isChecked) {
+                    setCurrentZones(undefined);
+                  }
+                }}
+              />
+            </div>
+            <div className="my-2.5 flex flex-col gap-2.5">
+              {allZones.map((item) => (
+                <FilterSwitch
+                  label={item.replaceAll("_", " ")}
+                  isChecked={currentZones?.includes(item) ?? false}
+                  onCheckedChange={(isChecked) => {
+                    if (isChecked) {
+                      const updatedZones = currentZones
+                        ? [...currentZones]
+                        : [];
+
+                      updatedZones.push(item);
+                      setCurrentZones(updatedZones);
+                    } else {
+                      const updatedZones = currentZones
+                        ? [...currentZones]
+                        : [];
+
+                      // can not deselect the last item
+                      if (updatedZones.length > 1) {
+                        updatedZones.splice(updatedZones.indexOf(item), 1);
+                        setCurrentZones(updatedZones);
+                      }
+                    }
+                  }}
+                />
+              ))}
+            </div>
+          </>
+        )}
       </div>
       <DropdownMenuSeparator />
       <div className="flex items-center justify-evenly p-2">
@@ -675,6 +788,10 @@ export function GeneralFilterContent({
               updateLabelFilter(currentLabels);
             }
 
+            if (updateZoneFilter && selectedZones != currentZones) {
+              updateZoneFilter(currentZones);
+            }
+
             onClose();
           }}
         >
@@ -683,6 +800,7 @@ export function GeneralFilterContent({
         <Button
           onClick={() => {
             setCurrentLabels(undefined);
+            setCurrentZones?.(undefined);
             updateLabelFilter(undefined);
           }}
         >

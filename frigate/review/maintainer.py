@@ -140,7 +140,7 @@ class PendingReviewSegment:
                 "zones": list(self.zones),
                 "audio": list(self.audio),
             },
-        }
+        }.copy()
 
 
 class ReviewSegmentMaintainer(threading.Thread):
@@ -194,10 +194,9 @@ class ReviewSegmentMaintainer(threading.Thread):
         camera_config: CameraConfig,
         frame,
         objects: list[TrackedObject],
+        prev_data: dict[str, any],
     ) -> None:
         """Update segment."""
-        prev_data = segment.get_data(ended=False)
-
         if frame is not None:
             segment.update_frame(camera_config, frame, objects)
 
@@ -240,8 +239,11 @@ class ReviewSegmentMaintainer(threading.Thread):
         """Validate if existing review segment should continue."""
         camera_config = self.config.cameras[segment.camera]
         active_objects = get_active_objects(frame_time, camera_config, objects)
+        prev_data = segment.get_data(False)
 
         if len(active_objects) > 0:
+            should_update = False
+
             if frame_time > segment.last_update:
                 segment.last_update = frame_time
 
@@ -270,19 +272,23 @@ class ReviewSegmentMaintainer(threading.Thread):
                     )
                 ):
                     segment.severity = SeverityEnum.alert
+                    should_update = True
 
                 # keep zones up to date
                 if len(object["current_zones"]) > 0:
                     segment.zones.update(object["current_zones"])
 
             if len(active_objects) > segment.frame_active_count:
+                should_update = True
+
+            if should_update:
                 try:
                     frame_id = f"{camera_config.name}{frame_time}"
                     yuv_frame = self.frame_manager.get(
                         frame_id, camera_config.frame_shape_yuv
                     )
                     self.update_segment(
-                        segment, camera_config, yuv_frame, active_objects
+                        segment, camera_config, yuv_frame, active_objects, prev_data
                     )
                     self.frame_manager.close(frame_id)
                 except FileNotFoundError:
@@ -296,7 +302,7 @@ class ReviewSegmentMaintainer(threading.Thread):
                     )
                     segment.save_full_frame(camera_config, yuv_frame)
                     self.frame_manager.close(frame_id)
-                    self.update_segment(segment, camera_config, None, [])
+                    self.update_segment(segment, camera_config, None, [], prev_data)
                 except FileNotFoundError:
                     return
 

@@ -49,6 +49,7 @@ import scrollIntoView from "scroll-into-view-if-needed";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { FilterList } from "@/types/filter";
 
 type EventViewProps = {
   reviewItems?: SegmentedReviewData;
@@ -89,7 +90,7 @@ export default function EventView({
 
   const reviewCounts = useMemo(() => {
     if (!reviewSummary) {
-      return { alert: 0, detection: 0, significant_motion: 0 };
+      return { alert: -1, detection: -1, significant_motion: -1 };
     }
 
     let summary;
@@ -102,7 +103,7 @@ export default function EventView({
     }
 
     if (!summary) {
-      return { alert: -1, detection: -1, significant_motion: -1 };
+      return { alert: 0, detection: 0, significant_motion: 0 };
     }
 
     if (filter?.showReviewed == 1) {
@@ -203,8 +204,9 @@ export default function EventView({
 
   // review filter info
 
-  const reviewLabels = useMemo(() => {
+  const reviewFilterList = useMemo<FilterList>(() => {
     const uniqueLabels = new Set<string>();
+    const uniqueZones = new Set<string>();
 
     reviewItems?.all?.forEach((rev) => {
       rev.data.objects.forEach((obj) =>
@@ -213,7 +215,11 @@ export default function EventView({
       rev.data.audio.forEach((aud) => uniqueLabels.add(aud));
     });
 
-    return [...uniqueLabels];
+    reviewItems?.all?.forEach((rev) => {
+      rev.data.zones.forEach((zone) => uniqueZones.add(zone));
+    });
+
+    return { labels: [...uniqueLabels], zones: [...uniqueZones] };
   }, [reviewItems]);
 
   if (!config) {
@@ -242,8 +248,13 @@ export default function EventView({
             aria-label="Select alerts"
           >
             <MdCircle className="size-2 text-severity_alert md:mr-[10px]" />
-            <div className="hidden md:block">
-              Alerts{` ∙ ${reviewCounts.alert > -1 ? reviewCounts.alert : ""}`}
+            <div className="hidden md:flex md:flex-row md:items-center">
+              Alerts
+              {reviewCounts.alert > -1 ? (
+                ` ∙ ${reviewCounts.alert}`
+              ) : (
+                <ActivityIndicator className="ml-2 size-4" />
+              )}
             </div>
           </ToggleGroupItem>
           <ToggleGroupItem
@@ -252,9 +263,13 @@ export default function EventView({
             aria-label="Select detections"
           >
             <MdCircle className="size-2 text-severity_detection md:mr-[10px]" />
-            <div className="hidden md:block">
+            <div className="hidden md:flex md:flex-row md:items-center">
               Detections
-              {` ∙ ${reviewCounts.detection > -1 ? reviewCounts.detection : ""}`}
+              {reviewCounts.detection > -1 ? (
+                ` ∙ ${reviewCounts.detection}`
+              ) : (
+                <ActivityIndicator className="ml-2 size-4" />
+              )}
             </div>
           </ToggleGroupItem>
           <ToggleGroupItem
@@ -282,7 +297,7 @@ export default function EventView({
             reviewSummary={reviewSummary}
             filter={filter}
             motionOnly={motionOnly}
-            filterLabels={reviewLabels}
+            filterList={reviewFilterList}
             onUpdateFilter={updateFilter}
             setMotionOnly={setMotionOnly}
           />
