@@ -1,8 +1,9 @@
 import { useApiHost } from "@/api";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import useSWR from "swr";
 import ActivityIndicator from "../indicators/activity-indicator";
 import { useResizeObserver } from "@/hooks/resize-observer";
+import { isDesktop } from "react-device-detect";
 
 type CameraImageProps = {
   className?: string;
@@ -27,18 +28,29 @@ export default function CameraImage({
   const enabled = config ? config.cameras[camera].enabled : "True";
   const [isPortraitImage, setIsPortraitImage] = useState(false);
 
+  const [{ width: containerWidth, height: containerHeight }] =
+    useResizeObserver(containerRef);
+
+  const requestHeight = useMemo(() => {
+    if (!config || containerHeight == 0) {
+      return 360;
+    }
+
+    return Math.min(
+      config.cameras[camera].detect.height,
+      Math.round(containerHeight * (isDesktop ? 1.1 : 1.25)),
+    );
+  }, [config, camera, containerHeight]);
+
   useEffect(() => {
     if (!config || !imgRef.current) {
       return;
     }
 
-    imgRef.current.src = `${apiHost}api/${name}/latest.jpg${
-      searchParams ? `?${searchParams}` : ""
+    imgRef.current.src = `${apiHost}api/${name}/latest.jpg?h=${requestHeight}${
+      searchParams ? `&${searchParams}` : ""
     }`;
-  }, [apiHost, name, imgRef, searchParams, config]);
-
-  const [{ width: containerWidth, height: containerHeight }] =
-    useResizeObserver(containerRef);
+  }, [apiHost, name, imgRef, searchParams, requestHeight, config]);
 
   return (
     <div className={className} ref={containerRef}>
