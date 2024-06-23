@@ -482,12 +482,12 @@ function PtzControlPanel({
 
   useKeyboardListener(
     ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "+", "-"],
-    (key, down, repeat) => {
-      if (repeat) {
+    (key, modifiers) => {
+      if (modifiers.repeat) {
         return;
       }
 
-      if (!down) {
+      if (!modifiers.down) {
         sendPtz("STOP");
         return;
       }
@@ -626,7 +626,10 @@ function PtzControlPanel({
               <BsThreeDotsVertical />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="scrollbar-container max-h-[40dvh] overflow-y-auto">
+          <DropdownMenuContent
+            className="scrollbar-container max-h-[40dvh] overflow-y-auto"
+            onCloseAutoFocus={(e) => e.preventDefault()}
+          >
             {ptz?.presets.map((preset) => {
               return (
                 <DropdownMenuItem

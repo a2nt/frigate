@@ -172,6 +172,12 @@ function PreviewVideoPlayer({
 
   const [firstLoad, setFirstLoad] = useState(true);
 
+  useEffect(() => {
+    if (cameraPreviews && cameraPreviews.length > 0) {
+      setFirstLoad(false);
+    }
+  }, [cameraPreviews]);
+
   const [currentPreview, setCurrentPreview] = useState(initialPreview);
 
   const onPreviewSeeked = useCallback(() => {
@@ -482,6 +488,12 @@ function PreviewFramesPlayer({
   // initial state
 
   const [firstLoad, setFirstLoad] = useState(true);
+
+  useEffect(() => {
+    if (previewFrames != undefined && previewFrames.length == 0) {
+      setFirstLoad(false);
+    }
+  }, [previewFrames]);
 
   useEffect(() => {
     if (!controller) {

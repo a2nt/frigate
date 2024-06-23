@@ -117,12 +117,12 @@ function MSEPlayer({
   }, [wsURL]);
 
   const onDisconnect = useCallback(() => {
-    setWsState(WebSocket.CLOSED);
-    if (wsRef.current) {
+    if (wsRef.current && wsState == WebSocket.OPEN) {
+      setWsState(WebSocket.CLOSED);
       wsRef.current.close();
       wsRef.current = null;
     }
-  }, []);
+  }, [wsState]);
 
   const onOpen = () => {
     setWsState(WebSocket.OPEN);
@@ -260,10 +260,14 @@ function MSEPlayer({
 
     return () => {
       onDisconnect();
+      if (bufferTimeout) {
+        clearTimeout(bufferTimeout);
+        setBufferTimeout(undefined);
+      }
     };
     // we know that these deps are correct
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playbackEnabled, onDisconnect, onConnect]);
+  }, [playbackEnabled]);
 
   // check visibility
 

@@ -2,7 +2,7 @@ import WebRtcPlayer from "./WebRTCPlayer";
 import { CameraConfig } from "@/types/frigateConfig";
 import AutoUpdatingCameraImage from "../camera/AutoUpdatingCameraImage";
 import ActivityIndicator from "../indicators/activity-indicator";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import MSEPlayer from "./MsePlayer";
 import JSMpegPlayer from "./JSMpegPlayer";
 import { MdCircle } from "react-icons/md";
@@ -18,6 +18,7 @@ import { getIconForLabel } from "@/utils/iconUtil";
 import Chip from "../indicators/Chip";
 import { capitalizeFirstLetter } from "@/utils/stringUtil";
 import { cn } from "@/lib/utils";
+import { TbExclamationCircle } from "react-icons/tb";
 
 type LivePlayerProps = {
   cameraRef?: (ref: HTMLDivElement | null) => void;
@@ -125,6 +126,10 @@ export default function LivePlayer({
     setLiveReady(false);
   }, [preferredLiveMode]);
 
+  const playerIsPlaying = useCallback(() => {
+    setLiveReady(true);
+  }, []);
+
   if (!cameraConfig) {
     return <ActivityIndicator />;
   }
@@ -141,7 +146,7 @@ export default function LivePlayer({
         audioEnabled={playAudio}
         microphoneEnabled={micEnabled}
         iOSCompatFullScreen={iOSCompatFullScreen}
-        onPlaying={() => setLiveReady(true)}
+        onPlaying={playerIsPlaying}
         pip={pip}
         onError={onError}
       />
@@ -154,7 +159,7 @@ export default function LivePlayer({
           camera={cameraConfig.live.stream_name}
           playbackEnabled={cameraActive}
           audioEnabled={playAudio}
-          onPlaying={() => setLiveReady(true)}
+          onPlaying={playerIsPlaying}
           pip={pip}
           setFullResolution={setFullResolution}
           onError={onError}
@@ -177,7 +182,7 @@ export default function LivePlayer({
           width={cameraConfig.detect.width}
           height={cameraConfig.detect.height}
           containerRef={containerRef}
-          onPlaying={() => setLiveReady(true)}
+          onPlaying={playerIsPlaying}
         />
       );
     } else {
@@ -271,6 +276,16 @@ export default function LivePlayer({
         />
       </div>
 
+      {offline && !showStillWithoutActivity && (
+        <div className="flex size-full flex-col items-center">
+          <p className="mb-5">
+            {capitalizeFirstLetter(cameraConfig.name)} is offline
+          </p>
+          <TbExclamationCircle className="mb-3 size-10" />
+          <p>No frames have been received, check error logs</p>
+        </div>
+      )}
+
       <div className="absolute right-2 top-2">
         {autoLive &&
           !offline &&
@@ -278,7 +293,7 @@ export default function LivePlayer({
           ((showStillWithoutActivity && !liveReady) || liveReady) && (
             <MdCircle className="mr-2 size-2 animate-pulse text-danger shadow-danger drop-shadow-md" />
           )}
-        {offline && (
+        {offline && showStillWithoutActivity && (
           <Chip
             className={`z-0 flex items-start justify-between space-x-1 bg-gray-500 bg-gradient-to-br from-gray-400 to-gray-500 text-xs capitalize`}
           >

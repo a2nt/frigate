@@ -1,8 +1,9 @@
 import { baseUrl } from "@/api/baseUrl";
 import { useResizeObserver } from "@/hooks/resize-observer";
+import { cn } from "@/lib/utils";
 // @ts-expect-error we know this doesn't have types
 import JSMpeg from "@cycjimmy/jsmpeg-player";
-import React, { useEffect, useMemo, useRef, useId } from "react";
+import React, { useEffect, useMemo, useRef, useId, useState } from "react";
 
 type JSMpegPlayerProps = {
   className?: string;
@@ -23,7 +24,10 @@ export default function JSMpegPlayer({
 }: JSMpegPlayerProps) {
   const url = `${baseUrl.replace(/^http/, "ws")}live/jsmpeg/${camera}`;
   const playerRef = useRef<HTMLDivElement | null>(null);
+  const videoRef = useRef(null);
   const internalContainerRef = useRef<HTMLDivElement | null>(null);
+  const onPlayingRef = useRef(onPlaying);
+  const [showCanvas, setShowCanvas] = useState(false);
 
   const selectedContainerRef = useMemo(
     () => containerRef ?? internalContainerRef,
@@ -82,11 +86,15 @@ export default function JSMpegPlayer({
   const uniqueId = useId();
 
   useEffect(() => {
-    if (!playerRef.current) {
+    onPlayingRef.current = onPlaying;
+  }, [onPlaying]);
+
+  useEffect(() => {
+    if (!playerRef.current || videoRef.current) {
       return;
     }
 
-    const video = new JSMpeg.VideoElement(
+    videoRef.current = new JSMpeg.VideoElement(
       playerRef.current,
       url,
       { canvas: `#${CSS.escape(uniqueId)}` },
@@ -95,26 +103,17 @@ export default function JSMpegPlayer({
         audio: false,
         videoBufferSize: 1024 * 1024 * 4,
         onPlay: () => {
-          onPlaying?.();
+          setShowCanvas(true);
+          onPlayingRef.current?.();
         },
       },
     );
-
-    return () => {
-      if (playerRef.current) {
-        try {
-          video.destroy();
-          // eslint-disable-next-line no-empty
-        } catch (e) {}
-        playerRef.current = null;
-      }
-    };
-  }, [url, uniqueId, onPlaying]);
+  }, [url, uniqueId]);
 
   return (
     <div className={className}>
       <div className="size-full" ref={internalContainerRef}>
-        <div ref={playerRef} className="jsmpeg">
+        <div ref={playerRef} className={cn("jsmpeg", !showCanvas && "hidden")}>
           <canvas
             id={uniqueId}
             style={{
