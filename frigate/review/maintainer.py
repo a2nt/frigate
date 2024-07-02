@@ -53,7 +53,7 @@ class PendingReviewSegment:
         severity: SeverityEnum,
         detections: dict[str, str],
         sub_labels: set[str],
-        zones: set[str],
+        zones: list[str],
         audio: set[str],
     ):
         rand_id = "".join(random.choices(string.ascii_lowercase + string.digits, k=6))
@@ -137,7 +137,7 @@ class PendingReviewSegment:
                 "detections": list(set(self.detections.keys())),
                 "objects": list(set(self.detections.values())),
                 "sub_labels": list(self.sub_labels),
-                "zones": list(self.zones),
+                "zones": self.zones,
                 "audio": list(self.audio),
             },
         }.copy()
@@ -213,18 +213,21 @@ class ReviewSegmentMaintainer(threading.Thread):
             ),
         )
 
-    def end_segment(self, segment: PendingReviewSegment) -> None:
+    def end_segment(
+        self,
+        segment: PendingReviewSegment,
+        prev_data: dict[str, any],
+    ) -> None:
         """End segment."""
         final_data = segment.get_data(ended=True)
         self.requestor.send_data(UPSERT_REVIEW_SEGMENT, final_data)
-        end_data = {k.name: v for k, v in final_data.items()}
         self.requestor.send_data(
             "reviews",
             json.dumps(
                 {
                     "type": "end",
-                    "before": end_data,
-                    "after": end_data,
+                    "before": {k.name: v for k, v in prev_data.items()},
+                    "after": {k.name: v for k, v in final_data.items()},
                 }
             ),
         )
@@ -276,7 +279,9 @@ class ReviewSegmentMaintainer(threading.Thread):
 
                 # keep zones up to date
                 if len(object["current_zones"]) > 0:
-                    segment.zones.update(object["current_zones"])
+                    for zone in object["current_zones"]:
+                        if zone not in segment.zones:
+                            segment.zones.append(zone)
 
             if len(active_objects) > segment.frame_active_count:
                 should_update = True
@@ -309,9 +314,9 @@ class ReviewSegmentMaintainer(threading.Thread):
             if segment.severity == SeverityEnum.alert and frame_time > (
                 segment.last_update + THRESHOLD_ALERT_ACTIVITY
             ):
-                self.end_segment(segment)
+                self.end_segment(segment, prev_data)
             elif frame_time > (segment.last_update + THRESHOLD_DETECTION_ACTIVITY):
-                self.end_segment(segment)
+                self.end_segment(segment, prev_data)
 
     def check_if_new_segment(
         self,
@@ -326,7 +331,7 @@ class ReviewSegmentMaintainer(threading.Thread):
         if len(active_objects) > 0:
             detections: dict[str, str] = {}
             sub_labels = set()
-            zones: set = set()
+            zones: list[str] = []
             severity = None
 
             for object in active_objects:
@@ -376,7 +381,9 @@ class ReviewSegmentMaintainer(threading.Thread):
                 ):
                     severity = SeverityEnum.detection
 
-                zones.update(object["current_zones"])
+                for zone in object["current_zones"]:
+                    if zone not in zones:
+                        zones.append(zone)
 
             if severity:
                 self.active_review_segments[camera] = PendingReviewSegment(
@@ -531,7 +538,7 @@ class ReviewSegmentMaintainer(threading.Thread):
                             severity,
                             {},
                             set(),
-                            set(),
+                            [],
                             detections,
                         )
                 elif topic == DetectionTypeEnum.api:
@@ -541,7 +548,7 @@ class ReviewSegmentMaintainer(threading.Thread):
                         SeverityEnum.alert,
                         {manual_info["event_id"]: manual_info["label"]},
                         set(),
-                        set(),
+                        [],
                         set(),
                     )
 

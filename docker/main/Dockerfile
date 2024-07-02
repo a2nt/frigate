@@ -33,7 +33,7 @@ RUN --mount=type=tmpfs,target=/tmp --mount=type=tmpfs,target=/var/cache/apt \
 FROM scratch AS go2rtc
 ARG TARGETARCH
 WORKDIR /rootfs/usr/local/go2rtc/bin
-ADD --link --chmod=755 "https://github.com/AlexxIT/go2rtc/releases/download/v1.9.4/go2rtc_linux_${TARGETARCH}" go2rtc
+ADD --link --chmod=755 "https://github.com/AlexxIT/go2rtc/releases/download/v1.9.2/go2rtc_linux_${TARGETARCH}" go2rtc
 
 FROM wget AS tempio
 ARG TARGETARCH
@@ -78,7 +78,7 @@ COPY --from=ov-converter /models/ssdlite_mobilenet_v2.bin openvino-model/
 RUN wget -q https://github.com/openvinotoolkit/open_model_zoo/raw/master/data/dataset_classes/coco_91cl_bkgr.txt -O openvino-model/coco_91cl_bkgr.txt && \
     sed -i 's/truck/car/g' openvino-model/coco_91cl_bkgr.txt
 # Get Audio Model and labels
-RUN wget -qO cpu_audio_model.tflite https://tfhub.dev/google/lite-model/yamnet/classification/tflite/1?lite-format=tflite
+RUN wget -qO - https://www.kaggle.com/api/v1/models/google/yamnet/tfLite/classification-tflite/1/download | tar xvz && mv 1.tflite cpu_audio_model.tflite 
 COPY audio-labelmap.txt .
 
 
