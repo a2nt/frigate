@@ -63,7 +63,7 @@ export default function LiveDashboardView({
 
   // recent events
 
-  const { payload: eventUpdate } = useFrigateReviews();
+  const eventUpdate = useFrigateReviews();
   const { data: allEvents, mutate: updateEvents } = useSWR<ReviewSegment[]>([
     "review",
     { limit: 10, severity: "alert" },
