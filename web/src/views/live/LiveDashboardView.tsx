@@ -34,7 +34,7 @@ import { useResizeObserver } from "@/hooks/resize-observer";
 
 type LiveDashboardViewProps = {
   cameras: CameraConfig[];
-  cameraGroup?: string;
+  cameraGroup: string;
   includeBirdseye: boolean;
   onSelectCamera: (camera: string) => void;
   fullscreen: boolean;
@@ -64,9 +64,32 @@ export default function LiveDashboardView({
   // recent events
 
   const eventUpdate = useFrigateReviews();
+
+  const alertCameras = useMemo(() => {
+    if (!config || cameraGroup == "default") {
+      return null;
+    }
+
+    if (includeBirdseye && cameras.length == 0) {
+      return Object.values(config.cameras)
+        .filter((cam) => cam.birdseye.enabled)
+        .map((cam) => cam.name)
+        .join(",");
+    }
+
+    return cameras
+      .map((cam) => cam.name)
+      .filter((cam) => config.camera_groups[cameraGroup]?.cameras.includes(cam))
+      .join(",");
+  }, [cameras, cameraGroup, config, includeBirdseye]);
+
   const { data: allEvents, mutate: updateEvents } = useSWR<ReviewSegment[]>([
     "review",
-    { limit: 10, severity: "alert" },
+    {
+      limit: 10,
+      severity: "alert",
+      cameras: alertCameras,
+    },
   ]);
 
   useEffect(() => {
@@ -109,33 +132,6 @@ export default function LiveDashboardView({
   const [preferredLiveModes, setPreferredLiveModes] = useState<{
     [key: string]: LivePlayerMode;
   }>({});
-
-  useEffect(() => {
-    if (!cameras) return;
-
-    const mseSupported =
-      "MediaSource" in window || "ManagedMediaSource" in window;
-
-    const newPreferredLiveModes = cameras.reduce(
-      (acc, camera) => {
-        const isRestreamed =
-          config &&
-          Object.keys(config.go2rtc.streams || {}).includes(
-            camera.live.stream_name,
-          );
-
-        if (!mseSupported) {
-          acc[camera.name] = isRestreamed ? "webrtc" : "jsmpeg";
-        } else {
-          acc[camera.name] = isRestreamed ? "mse" : "jsmpeg";
-        }
-        return acc;
-      },
-      {} as { [key: string]: LivePlayerMode },
-    );
-
-    setPreferredLiveModes(newPreferredLiveModes);
-  }, [cameras, config]);
 
   const [{ height: containerHeight }] = useResizeObserver(containerRef);
 
@@ -189,6 +185,33 @@ export default function LiveDashboardView({
       visibleCameraObserver.current?.disconnect();
     };
   }, []);
+
+  useEffect(() => {
+    if (!cameras) return;
+
+    const mseSupported =
+      "MediaSource" in window || "ManagedMediaSource" in window;
+
+    const newPreferredLiveModes = cameras.reduce(
+      (acc, camera) => {
+        const isRestreamed =
+          config &&
+          Object.keys(config.go2rtc.streams || {}).includes(
+            camera.live.stream_name,
+          );
+
+        if (!mseSupported) {
+          acc[camera.name] = isRestreamed ? "webrtc" : "jsmpeg";
+        } else {
+          acc[camera.name] = isRestreamed ? "mse" : "jsmpeg";
+        }
+        return acc;
+      },
+      {} as { [key: string]: LivePlayerMode },
+    );
+
+    setPreferredLiveModes(newPreferredLiveModes);
+  }, [cameras, config, windowVisible]);
 
   const cameraRef = useCallback(
     (node: HTMLElement | null) => {

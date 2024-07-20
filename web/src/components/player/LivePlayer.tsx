@@ -73,13 +73,30 @@ export default function LivePlayer({
   const liveMode = useCameraLiveMode(cameraConfig, preferredLiveMode);
 
   const [liveReady, setLiveReady] = useState(false);
+
+  const liveReadyRef = useRef(liveReady);
+  const cameraActiveRef = useRef(cameraActive);
+
+  useEffect(() => {
+    liveReadyRef.current = liveReady;
+    cameraActiveRef.current = cameraActive;
+  }, [liveReady, cameraActive]);
+
   useEffect(() => {
     if (!autoLive || !liveReady) {
       return;
     }
 
     if (!cameraActive) {
-      setLiveReady(false);
+      const timer = setTimeout(() => {
+        if (liveReadyRef.current && !cameraActiveRef.current) {
+          setLiveReady(false);
+        }
+      }, 500);
+
+      return () => {
+        clearTimeout(timer);
+      };
     }
     // live mode won't change
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -90,6 +107,10 @@ export default function LivePlayer({
   const stillReloadInterval = useMemo(() => {
     if (!windowVisible || offline || !showStillWithoutActivity) {
       return -1; // no reason to update the image when the window is not visible
+    }
+
+    if (liveReady && !cameraActive) {
+      return 300;
     }
 
     if (liveReady) {
@@ -113,6 +134,7 @@ export default function LivePlayer({
     activeTracking,
     offline,
     windowVisible,
+    cameraActive,
   ]);
 
   useEffect(() => {
@@ -135,7 +157,7 @@ export default function LivePlayer({
       <WebRtcPlayer
         className={`size-full rounded-lg md:rounded-2xl ${liveReady ? "" : "hidden"}`}
         camera={cameraConfig.live.stream_name}
-        playbackEnabled={cameraActive}
+        playbackEnabled={cameraActive || liveReady}
         audioEnabled={playAudio}
         microphoneEnabled={micEnabled}
         iOSCompatFullScreen={iOSCompatFullScreen}
@@ -150,7 +172,7 @@ export default function LivePlayer({
         <MSEPlayer
           className={`size-full rounded-lg md:rounded-2xl ${liveReady ? "" : "hidden"}`}
           camera={cameraConfig.live.stream_name}
-          playbackEnabled={cameraActive}
+          playbackEnabled={cameraActive || liveReady}
           audioEnabled={playAudio}
           onPlaying={playerIsPlaying}
           pip={pip}
@@ -166,14 +188,16 @@ export default function LivePlayer({
       );
     }
   } else if (liveMode == "jsmpeg") {
-    if (cameraActive || !showStillWithoutActivity) {
+    if (cameraActive || !showStillWithoutActivity || liveReady) {
       player = (
         <JSMpegPlayer
           className="flex justify-center overflow-hidden rounded-lg md:rounded-2xl"
           camera={cameraConfig.name}
           width={cameraConfig.detect.width}
           height={cameraConfig.detect.height}
-          playbackEnabled={cameraActive || !showStillWithoutActivity}
+          playbackEnabled={
+            cameraActive || !showStillWithoutActivity || liveReady
+          }
           containerRef={containerRef ?? internalContainerRef}
           onPlaying={playerIsPlaying}
         />

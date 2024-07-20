@@ -83,6 +83,7 @@ class OnvifController:
 
         try:
             profiles = media.GetProfiles()
+            logger.debug(f"Onvif profiles for {camera_name}: {profiles}")
         except (ONVIFError, Fault, TransportError) as e:
             logger.error(
                 f"Unable to get Onvif media profiles for camera: {camera_name}: {e}"
@@ -93,11 +94,15 @@ class OnvifController:
         for key, onvif_profile in enumerate(profiles):
             if (
                 onvif_profile.VideoEncoderConfiguration
-                and onvif_profile.VideoEncoderConfiguration.Encoding == "H264"
                 and onvif_profile.PTZConfiguration
-                and onvif_profile.PTZConfiguration.DefaultContinuousPanTiltVelocitySpace
-                is not None
+                and (
+                    onvif_profile.PTZConfiguration.DefaultContinuousPanTiltVelocitySpace
+                    is not None
+                    or onvif_profile.PTZConfiguration.DefaultContinuousZoomVelocitySpace
+                    is not None
+                )
             ):
+                # use the first profile that has a valid ptz configuration
                 profile = onvif_profile
                 logger.debug(f"Selected Onvif profile for {camera_name}: {profile}")
                 break

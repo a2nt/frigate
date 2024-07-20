@@ -31,6 +31,7 @@ export default function JSMpegPlayer({
   const onPlayingRef = useRef(onPlaying);
   const [showCanvas, setShowCanvas] = useState(false);
   const [hasData, setHasData] = useState(false);
+  const hasDataRef = useRef(hasData);
   const [dimensionsReady, setDimensionsReady] = useState(false);
 
   const selectedContainerRef = useMemo(
@@ -110,6 +111,8 @@ export default function JSMpegPlayer({
     const canvas = canvasRef.current;
     let videoElement: JSMpeg.VideoElement | null = null;
 
+    setHasData(false);
+
     if (videoWrapper && playbackEnabled) {
       // Delayed init to avoid issues with react strict mode
       const initPlayer = setTimeout(() => {
@@ -120,9 +123,11 @@ export default function JSMpegPlayer({
           {
             protocols: [],
             audio: false,
+            disableGl: true,
+            disableWebAssembly: true,
             videoBufferSize: 1024 * 1024 * 4,
             onVideoDecode: () => {
-              if (!hasData) {
+              if (!hasDataRef.current) {
                 setHasData(true);
                 onPlayingRef.current?.();
               }
@@ -150,6 +155,10 @@ export default function JSMpegPlayer({
   useEffect(() => {
     setShowCanvas(hasData && dimensionsReady);
   }, [hasData, dimensionsReady]);
+
+  useEffect(() => {
+    hasDataRef.current = hasData;
+  }, [hasData]);
 
   return (
     <div className={cn(className, !containerRef.current && "size-full")}>
