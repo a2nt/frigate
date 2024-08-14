@@ -84,7 +84,11 @@ export function RecordingView({
   const previewRowRef = useRef<HTMLDivElement | null>(null);
   const previewRefs = useRef<{ [camera: string]: PreviewController }>({});
 
-  const [playbackStart, setPlaybackStart] = useState(startTime);
+  const [playbackStart, setPlaybackStart] = useState(
+    startTime >= timeRange.after && startTime <= timeRange.before
+      ? startTime
+      : timeRange.before - 60,
+  );
 
   const mainCameraReviewItems = useMemo(
     () => reviewItems?.filter((cam) => cam.camera == mainCamera) ?? [],
@@ -107,8 +111,10 @@ export function RecordingView({
       return chunk.after <= startTime && chunk.before >= startTime;
     }),
   );
-  const currentTimeRange = useMemo(
-    () => chunkedTimeRange[selectedRangeIdx],
+  const currentTimeRange = useMemo<TimeRange>(
+    () =>
+      chunkedTimeRange[selectedRangeIdx] ??
+      chunkedTimeRange[chunkedTimeRange.length - 1],
     [selectedRangeIdx, chunkedTimeRange],
   );
   const reviewFilterList = useMemo(() => {
@@ -198,6 +204,10 @@ export function RecordingView({
 
   const manuallySetCurrentTime = useCallback(
     (time: number) => {
+      if (!currentTimeRange) {
+        return;
+      }
+
       setCurrentTime(time);
 
       if (currentTimeRange.after <= time && currentTimeRange.before >= time) {
