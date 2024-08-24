@@ -6,7 +6,7 @@ import {
   useState,
 } from "react";
 import Hls from "hls.js";
-import { isAndroid, isDesktop, isIOS, isMobile } from "react-device-detect";
+import { isAndroid, isDesktop, isMobile } from "react-device-detect";
 import { TransformComponent, TransformWrapper } from "react-zoom-pan-pinch";
 import VideoControls from "./VideoControls";
 import { VideoResolutionType } from "@/types/live";
@@ -31,6 +31,7 @@ type HlsVideoPlayerProps = {
   visible: boolean;
   currentSource: string;
   hotKeys: boolean;
+  supportsFullscreen: boolean;
   fullscreen: boolean;
   onClipEnded?: () => void;
   onPlayerLoaded?: () => void;
@@ -47,6 +48,7 @@ export default function HlsVideoPlayer({
   visible,
   currentSource,
   hotKeys,
+  supportsFullscreen,
   fullscreen,
   onClipEnded,
   onPlayerLoaded,
@@ -175,7 +177,7 @@ export default function HlsVideoPlayer({
           volume: true,
           seek: true,
           playbackRate: true,
-          fullscreen: !isIOS,
+          fullscreen: supportsFullscreen,
         }}
         setControlsOpen={setControlsOpen}
         setMuted={(muted) => setMuted(muted, true)}
