@@ -50,7 +50,7 @@ def get_ffmpeg_command(ffmpeg: FfmpegConfig) -> list[str]:
         or get_ffmpeg_arg_list(ffmpeg.input_args)
     )
     return (
-        ["ffmpeg", "-vn", "-threads", "1"]
+        [ffmpeg.ffmpeg_path, "-vn", "-threads", "1"]
         + input_args
         + ["-i"]
         + [ffmpeg_input.path]
@@ -223,7 +223,7 @@ class AudioEventMaintainer(threading.Thread):
                     audio_detections.append(label)
 
             # send audio detection data
-            self.detection_publisher.send_data(
+            self.detection_publisher.publish(
                 (
                     self.config.name,
                     datetime.datetime.now().timestamp(),
@@ -288,10 +288,7 @@ class AudioEventMaintainer(threading.Thread):
 
                 resp = requests.put(
                     f"{FRIGATE_LOCALHOST}/api/events/{detection['id']}/end",
-                    json={
-                        "end_time": detection["last_detection"]
-                        + self.config.record.events.post_capture
-                    },
+                    json={"end_time": detection["last_detection"]},
                 )
 
                 if resp.status_code == 200:

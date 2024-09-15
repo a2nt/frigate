@@ -292,6 +292,11 @@ class ReviewSegmentMaintainer(threading.Thread):
                     yuv_frame = self.frame_manager.get(
                         frame_id, camera_config.frame_shape_yuv
                     )
+
+                    if yuv_frame is None:
+                        logger.debug(f"Failed to get frame {frame_id} from SHM")
+                        return
+
                     self.update_segment(
                         segment, camera_config, yuv_frame, active_objects, prev_data
                     )
@@ -305,6 +310,11 @@ class ReviewSegmentMaintainer(threading.Thread):
                     yuv_frame = self.frame_manager.get(
                         frame_id, camera_config.frame_shape_yuv
                     )
+
+                    if yuv_frame is None:
+                        logger.debug(f"Failed to get frame {frame_id} from SHM")
+                        return
+
                     segment.save_full_frame(camera_config, yuv_frame)
                     self.frame_manager.close(frame_id)
                     self.update_segment(segment, camera_config, None, [], prev_data)
@@ -401,6 +411,11 @@ class ReviewSegmentMaintainer(threading.Thread):
                     yuv_frame = self.frame_manager.get(
                         frame_id, camera_config.frame_shape_yuv
                     )
+
+                    if yuv_frame is None:
+                        logger.debug(f"Failed to get frame {frame_id} from SHM")
+                        return
+
                     self.active_review_segments[camera].update_frame(
                         camera_config, yuv_frame, active_objects
                     )
@@ -424,7 +439,7 @@ class ReviewSegmentMaintainer(threading.Thread):
                 camera_name = updated_topic.rpartition("/")[-1]
                 self.config.cameras[camera_name].record = updated_record_config
 
-            (topic, data) = self.detection_subscriber.get_data(timeout=1)
+            (topic, data) = self.detection_subscriber.check_for_update(timeout=1)
 
             if not topic:
                 continue

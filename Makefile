@@ -1,8 +1,13 @@
 default_target: local
 
 COMMIT_HASH := $(shell git log -1 --pretty=format:"%h"|tail -1)
+<<<<<<< HEAD
 VERSION = 0.14.1
 IMAGE_REPO ?= ghcr.io/a2nt/frigate
+=======
+VERSION = 0.15.0
+IMAGE_REPO ?= ghcr.io/blakeblackshear/frigate
+>>>>>>> upstream/dev
 GITHUB_REF_NAME ?= $(shell git rev-parse --abbrev-ref HEAD)
 CURRENT_UID := $(shell id -u)
 CURRENT_GID := $(shell id -g)

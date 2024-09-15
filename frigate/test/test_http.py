@@ -120,6 +120,7 @@ class TestHttp(unittest.TestCase):
             None,
             None,
             None,
+            None,
         )
         id = "123456.random"
         id2 = "7890.random"
@@ -154,6 +155,11 @@ class TestHttp(unittest.TestCase):
             None,
             None,
             None,
+<<<<<<< HEAD
+=======
+            None,
+            PlusApi(),
+>>>>>>> upstream/dev
             None,
         )
         id = "123456.random"
@@ -174,6 +180,11 @@ class TestHttp(unittest.TestCase):
             None,
             None,
             None,
+<<<<<<< HEAD
+=======
+            None,
+            PlusApi(),
+>>>>>>> upstream/dev
             None,
         )
         id = "123456.random"
@@ -193,6 +204,11 @@ class TestHttp(unittest.TestCase):
             None,
             None,
             None,
+<<<<<<< HEAD
+=======
+            None,
+            PlusApi(),
+>>>>>>> upstream/dev
             None,
         )
         id = "123456.random"
@@ -214,6 +230,11 @@ class TestHttp(unittest.TestCase):
             None,
             None,
             None,
+<<<<<<< HEAD
+=======
+            None,
+            PlusApi(),
+>>>>>>> upstream/dev
             None,
         )
         id = "123456.random"
@@ -239,6 +260,11 @@ class TestHttp(unittest.TestCase):
             None,
             None,
             None,
+<<<<<<< HEAD
+=======
+            None,
+            PlusApi(),
+>>>>>>> upstream/dev
             None,
         )
         morning_id = "123456.random"
@@ -276,6 +302,11 @@ class TestHttp(unittest.TestCase):
             None,
             None,
             None,
+<<<<<<< HEAD
+=======
+            None,
+            PlusApi(),
+>>>>>>> upstream/dev
             None,
         )
         id = "123456.random"
@@ -310,6 +341,11 @@ class TestHttp(unittest.TestCase):
             None,
             None,
             None,
+<<<<<<< HEAD
+=======
+            None,
+            PlusApi(),
+>>>>>>> upstream/dev
             None,
         )
         id = "123456.random"
@@ -334,6 +370,11 @@ class TestHttp(unittest.TestCase):
             None,
             None,
             None,
+<<<<<<< HEAD
+=======
+            None,
+            PlusApi(),
+>>>>>>> upstream/dev
             None,
         )
 
@@ -350,6 +391,11 @@ class TestHttp(unittest.TestCase):
             None,
             None,
             None,
+<<<<<<< HEAD
+=======
+            None,
+            PlusApi(),
+>>>>>>> upstream/dev
             None,
         )
         id = "123456.random"
@@ -370,6 +416,11 @@ class TestHttp(unittest.TestCase):
             None,
             None,
             None,
+<<<<<<< HEAD
+=======
+            None,
+            PlusApi(),
+>>>>>>> upstream/dev
             stats,
         )
 

@@ -29,6 +29,10 @@ module.exports = {
         "configuration/object_detectors",
         "configuration/audio_detectors",
       ],
+      "Semantic Search": [
+        "configuration/semantic_search",
+        "configuration/genai",
+      ],
       Cameras: [
         "configuration/cameras",
         "configuration/review",
@@ -50,6 +54,7 @@ module.exports = {
       ],
       "Extra Configuration": [
         "configuration/authentication",
+        "configuration/notifications",
         "configuration/hardware_acceleration",
         "configuration/ffmpeg_presets",
         "configuration/tls",

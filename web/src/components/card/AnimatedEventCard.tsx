@@ -7,10 +7,10 @@ import { REVIEW_PADDING, ReviewSegment } from "@/types/review";
 import { useNavigate } from "react-router-dom";
 import { RecordingStartingPoint } from "@/types/record";
 import axios from "axios";
-import { VideoPreview } from "../player/PreviewThumbnailPlayer";
 import { isCurrentHour } from "@/utils/dateUtil";
 import { useCameraPreviews } from "@/hooks/use-camera-previews";
 import { baseUrl } from "@/api/baseUrl";
+import { VideoPreview } from "../preview/ScrubbablePreview";
 import { useApiHost } from "@/api";
 import { isDesktop, isSafari } from "react-device-detect";
 import { usePersistence } from "@/hooks/use-persistence";
@@ -91,13 +91,17 @@ export function AnimatedEventCard({
   const [alertVideos] = usePersistence("alertVideos", true);
 
   const aspectRatio = useMemo(() => {
-    if (!config || !Object.keys(config.cameras).includes(event.camera)) {
+    if (
+      !config ||
+      !alertVideos ||
+      !Object.keys(config.cameras).includes(event.camera)
+    ) {
       return 16 / 9;
     }
 
     const detect = config.cameras[event.camera].detect;
     return detect.width / detect.height;
-  }, [config, event]);
+  }, [alertVideos, config, event]);
 
   return (
     <Tooltip>
@@ -127,59 +131,68 @@ export function AnimatedEventCard({
               <TooltipContent>Mark as Reviewed</TooltipContent>
             </Tooltip>
           )}
-          <div
-            className="size-full cursor-pointer overflow-hidden rounded md:rounded-lg"
-            onClick={onOpenReview}
-          >
-            {!alertVideos ? (
-              <img
-                className="size-full select-none"
-                src={`${apiHost}${event.thumb_path.replace("/media/frigate/", "")}`}
-                loading={isSafari ? "eager" : "lazy"}
-                onLoad={() => setIsLoaded(true)}
-              />
-            ) : (
-              <>
-                {previews ? (
-                  <VideoPreview
-                    relevantPreview={previews[previews.length - 1]}
-                    startTime={event.start_time}
-                    endTime={event.end_time}
-                    loop
-                    showProgress={false}
-                    setReviewed={() => {}}
-                    setIgnoreClick={() => {}}
-                    isPlayingBack={() => {}}
-                    onTimeUpdate={() => {
-                      if (!isLoaded) {
-                        setIsLoaded(true);
-                      }
-                    }}
-                    windowVisible={windowVisible}
-                  />
-                ) : (
-                  <video
-                    preload="auto"
-                    autoPlay
-                    playsInline
-                    muted
-                    disableRemotePlayback
-                    loop
-                    onTimeUpdate={() => {
-                      if (!isLoaded) {
-                        setIsLoaded(true);
-                      }
-                    }}
-                  >
-                    <source
-                      src={`${baseUrl}api/review/${event.id}/preview?format=mp4`}
-                      type="video/mp4"
+          {previews != undefined && (
+            <div
+              className="size-full cursor-pointer overflow-hidden rounded md:rounded-lg"
+              onClick={onOpenReview}
+              onAuxClick={(e) => {
+                if (e.button === 1) {
+                  window
+                    .open(`${baseUrl}review?id=${event.id}`, "_blank")
+                    ?.focus();
+                }
+              }}
+            >
+              {!alertVideos ? (
+                <img
+                  className="size-full select-none"
+                  src={`${apiHost}${event.thumb_path.replace("/media/frigate/", "")}`}
+                  loading={isSafari ? "eager" : "lazy"}
+                  onLoad={() => setIsLoaded(true)}
+                />
+              ) : (
+                <>
+                  {previews.length ? (
+                    <VideoPreview
+                      relevantPreview={previews[previews.length - 1]}
+                      startTime={event.start_time}
+                      endTime={event.end_time}
+                      loop
+                      showProgress={false}
+                      setReviewed={() => {}}
+                      setIgnoreClick={() => {}}
+                      isPlayingBack={() => {}}
+                      onTimeUpdate={() => {
+                        if (!isLoaded) {
+                          setIsLoaded(true);
+                        }
+                      }}
+                      windowVisible={windowVisible}
                     />
-                  </video>
-                )}
-              </>
-            )}
-          </div>
+                  ) : (
+                    <video
+                      preload="auto"
+                      autoPlay
+                      playsInline
+                      muted
+                      disableRemotePlayback
+                      loop
+                      onTimeUpdate={() => {
+                        if (!isLoaded) {
+                          setIsLoaded(true);
+                        }
+                      }}
+                    >
+                      <source
+                        src={`${baseUrl}api/review/${event.id}/preview?format=mp4`}
+                        type="video/mp4"
+                      />
+                    </video>
+                  )}
+                </>
+              )}
+            </div>
+          )}
           {isLoaded && (
             <div className="absolute inset-x-0 bottom-0 h-6 rounded bg-gradient-to-t from-slate-900/50 to-transparent">
               <div className="absolute bottom-0 left-1 w-full text-xs text-white">

@@ -2,39 +2,52 @@ import { ENV } from "@/env";
 import { NavData } from "@/types/navigation";
 import { useMemo } from "react";
 import { FaCompactDisc, FaVideo } from "react-icons/fa";
+import { IoSearch } from "react-icons/io5";
 import { LuConstruction } from "react-icons/lu";
 import { MdVideoLibrary } from "react-icons/md";
+
+export const ID_LIVE = 1;
+export const ID_REVIEW = 2;
+export const ID_EXPLORE = 3;
+export const ID_EXPORT = 4;
+export const ID_PLAYGROUND = 5;
 
 export default function useNavigation(
   variant: "primary" | "secondary" = "primary",
 ) {
-
   return useMemo(
     () =>
       [
         {
-          id: 1,
+          id: ID_LIVE,
           variant,
           icon: FaVideo,
           title: "Live",
           url: "/",
         },
         {
-          id: 2,
+          id: ID_REVIEW,
           variant,
           icon: MdVideoLibrary,
           title: "Review",
           url: "/review",
         },
         {
-          id: 3,
+          id: ID_EXPLORE,
+          variant,
+          icon: IoSearch,
+          title: "Explore",
+          url: "/explore",
+        },
+        {
+          id: ID_EXPORT,
           variant,
           icon: FaCompactDisc,
           title: "Export",
           url: "/export",
         },
         {
-          id: 4,
+          id: ID_PLAYGROUND,
           variant,
           icon: LuConstruction,
           title: "UI Playground",
@@ -42,6 +55,6 @@ export default function useNavigation(
           enabled: ENV !== "production",
         },
       ] as NavData[],
-      [false, variant],
+    [variant],
   );
 }

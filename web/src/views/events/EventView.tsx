@@ -52,6 +52,7 @@ import { cn } from "@/lib/utils";
 import { FilterList, LAST_24_HOURS_KEY } from "@/types/filter";
 import { GiSoundWaves } from "react-icons/gi";
 import useKeyboardListener from "@/hooks/use-keyboard-listener";
+import ReviewDetailDialog from "@/components/overlay/detail/ReviewDetailDialog";
 
 type EventViewProps = {
   reviewItems?: SegmentedReviewData;
@@ -190,7 +191,7 @@ export default function EventView({
       axios
         .post(
           `export/${review.camera}/start/${review.start_time - REVIEW_PADDING}/end/${endTime}`,
-          { playback: "realtime" },
+          { playback: "realtime", image_path: review.thumb_path },
         )
         .then((response) => {
           if (response.status == 200) {
@@ -464,6 +465,10 @@ function DetectionReview({
 
   const segmentDuration = 60;
 
+  // detail
+
+  const [reviewDetail, setReviewDetail] = useState<ReviewSegment>();
+
   // preview
 
   const [previewTime, setPreviewTime] = useState<number>();
@@ -628,13 +633,15 @@ function DetectionReview({
 
   return (
     <>
+      <ReviewDetailDialog review={reviewDetail} setReview={setReviewDetail} />
+
       <div
         ref={contentRef}
         className="no-scrollbar flex flex-1 flex-wrap content-start gap-2 overflow-y-auto md:gap-4"
       >
         {filter?.before == undefined && (
           <NewReviewData
-            className="pointer-events-none absolute left-1/2 z-50 -translate-x-1/2"
+            className="pointer-events-none absolute left-1/2 z-[49] -translate-x-1/2"
             contentRef={contentRef}
             reviewItems={currentItems}
             itemsToReview={loading ? 0 : itemsToReview}
@@ -682,7 +689,17 @@ function DetectionReview({
                         setReviewed={markItemAsReviewed}
                         scrollLock={scrollLock}
                         onTimeUpdate={onPreviewTimeUpdate}
-                        onClick={onSelectReview}
+                        onClick={(
+                          review: ReviewSegment,
+                          ctrl: boolean,
+                          detail: boolean,
+                        ) => {
+                          if (detail) {
+                            setReviewDetail(review);
+                          } else {
+                            onSelectReview(review, ctrl);
+                          }
+                        }}
                       />
                     </div>
                     <div

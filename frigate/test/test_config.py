@@ -355,9 +355,7 @@ class TestConfig(unittest.TestCase):
     def test_motion_mask_relative_matches_explicit(self):
         config = {
             "mqtt": {"host": "mqtt"},
-            "record": {
-                "events": {"retain": {"default": 20, "objects": {"person": 30}}}
-            },
+            "record": {"alerts": {"retain": {"days": 20}}},
             "cameras": {
                 "explicit": {
                     "ffmpeg": {
@@ -529,9 +527,7 @@ class TestConfig(unittest.TestCase):
     def test_inherit_clips_retention(self):
         config = {
             "mqtt": {"host": "mqtt"},
-            "record": {
-                "events": {"retain": {"default": 20, "objects": {"person": 30}}}
-            },
+            "record": {"alerts": {"retain": {"days": 20}}},
             "cameras": {
                 "back": {
                     "ffmpeg": {
@@ -551,15 +547,17 @@ class TestConfig(unittest.TestCase):
         assert config == frigate_config.model_dump(exclude_unset=True)
 
         runtime_config = frigate_config.runtime_config()
-        assert (
-            runtime_config.cameras["back"].record.events.retain.objects["person"] == 30
-        )
+        assert runtime_config.cameras["back"].record.alerts.retain.days == 20
 
     def test_roles_listed_twice_throws_error(self):
         config = {
             "mqtt": {"host": "mqtt"},
             "record": {
-                "events": {"retain": {"default": 20, "objects": {"person": 30}}}
+                "alerts": {
+                    "retain": {
+                        "days": 20,
+                    }
+                }
             },
             "cameras": {
                 "back": {
@@ -583,7 +581,11 @@ class TestConfig(unittest.TestCase):
         config = {
             "mqtt": {"host": "mqtt"},
             "record": {
-                "events": {"retain": {"default": 20, "objects": {"person": 30}}}
+                "alerts": {
+                    "retain": {
+                        "days": 20,
+                    }
+                }
             },
             "cameras": {
                 "back": {
@@ -607,7 +609,11 @@ class TestConfig(unittest.TestCase):
         config = {
             "mqtt": {"host": "mqtt"},
             "record": {
-                "events": {"retain": {"default": 20, "objects": {"person": 30}}}
+                "alerts": {
+                    "retain": {
+                        "days": 20,
+                    }
+                }
             },
             "cameras": {
                 "back": {
@@ -638,7 +644,11 @@ class TestConfig(unittest.TestCase):
         config = {
             "mqtt": {"host": "mqtt"},
             "record": {
-                "events": {"retain": {"default": 20, "objects": {"person": 30}}}
+                "alerts": {
+                    "retain": {
+                        "days": 20,
+                    }
+                }
             },
             "cameras": {
                 "back": {
@@ -668,37 +678,6 @@ class TestConfig(unittest.TestCase):
             frigate_config.cameras["back"].zones["explicit"].contour,
             frigate_config.cameras["back"].zones["relative"].contour,
         )
-
-    def test_clips_should_default_to_global_objects(self):
-        config = {
-            "mqtt": {"host": "mqtt"},
-            "record": {
-                "events": {"retain": {"default": 20, "objects": {"person": 30}}}
-            },
-            "objects": {"track": ["person", "dog"]},
-            "cameras": {
-                "back": {
-                    "ffmpeg": {
-                        "inputs": [
-                            {"path": "rtsp://10.0.0.1:554/video", "roles": ["detect"]}
-                        ]
-                    },
-                    "detect": {
-                        "height": 1080,
-                        "width": 1920,
-                        "fps": 5,
-                    },
-                    "record": {"events": {}},
-                }
-            },
-        }
-        frigate_config = FrigateConfig(**config)
-        assert config == frigate_config.model_dump(exclude_unset=True)
-
-        runtime_config = frigate_config.runtime_config()
-        back_camera = runtime_config.cameras["back"]
-        assert back_camera.record.events.objects is None
-        assert back_camera.record.events.retain.objects["person"] == 30
 
     def test_role_assigned_but_not_enabled(self):
         config = {

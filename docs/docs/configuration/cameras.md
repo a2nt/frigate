@@ -7,7 +7,7 @@ title: Camera Configuration
 
 Several inputs can be configured for each camera and the role of each input can be mixed and matched based on your needs. This allows you to use a lower resolution stream for object detection, but create recordings from a higher resolution stream, or vice versa.
 
-A camera is enabled by default but can be temporarily disabled by using `enabled: False`. Existing events and recordings can still be accessed. Live streams, recording and detecting are not working. Camera specific configurations will be used.
+A camera is enabled by default but can be temporarily disabled by using `enabled: False`. Existing tracked objects and recordings can still be accessed. Live streams, recording and detecting are not working. Camera specific configurations will be used.
 
 Each role can only be assigned to one input per camera. The options for roles are as follows:
 
@@ -45,6 +45,14 @@ cameras:
   front: ...
   side: ...
 ```
+
+:::note
+
+If you only define one stream in your `inputs` and do not assign a `detect` role to it, Frigate will automatically assign it the `detect` role. Frigate will always decode a stream to support motion detection, Birdseye, the API image endpoints, and other features, even if you have disabled object detection with `enabled: False` in your config's `detect` section.
+
+If you plan to use Frigate for recording only, it is still recommended to define a `detect` role for a low resolution stream to minimize resource usage from the required stream decoding.
+
+:::
 
 For camera model specific settings check the [camera specific](camera_specific.md) infos.
 

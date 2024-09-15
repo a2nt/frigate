@@ -346,6 +346,11 @@ export interface FrigateConfig {
     user: string | null;
   };
 
+  notifications: {
+    enabled: boolean;
+    email?: string;
+  };
+
   objects: {
     filters: {
       [objectName: string]: {
@@ -391,6 +396,10 @@ export interface FrigateConfig {
   };
 
   rtmp: {
+    enabled: boolean;
+  };
+
+  semantic_search: {
     enabled: boolean;
   };
 

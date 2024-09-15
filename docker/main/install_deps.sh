@@ -39,19 +39,26 @@ apt-get -qq install --no-install-recommends --no-install-suggests -y \
 
 # btbn-ffmpeg -> amd64
 if [[ "${TARGETARCH}" == "amd64" ]]; then
-    mkdir -p /usr/lib/btbn-ffmpeg
+    mkdir -p /usr/lib/ffmpeg/5.0
+    mkdir -p /usr/lib/ffmpeg/7.0
     wget -qO btbn-ffmpeg.tar.xz "https://github.com/NickM-27/FFmpeg-Builds/releases/download/autobuild-2022-07-31-12-37/ffmpeg-n5.1-2-g915ef932a3-linux64-gpl-5.1.tar.xz"
-    tar -xf btbn-ffmpeg.tar.xz -C /usr/lib/btbn-ffmpeg --strip-components 1
-    rm -rf btbn-ffmpeg.tar.xz /usr/lib/btbn-ffmpeg/doc /usr/lib/btbn-ffmpeg/bin/ffplay
+    tar -xf btbn-ffmpeg.tar.xz -C /usr/lib/ffmpeg/5.0 --strip-components 1
+    rm -rf btbn-ffmpeg.tar.xz /usr/lib/ffmpeg/5.0/doc /usr/lib/ffmpeg/5.0/bin/ffplay
+    wget -qO btbn-ffmpeg.tar.xz "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2024-09-13-12-57/ffmpeg-n7.0.2-17-gf705bc5b73-linux64-gpl-7.0.tar.xz"
+    tar -xf btbn-ffmpeg.tar.xz -C /usr/lib/ffmpeg/7.0 --strip-components 1
+    rm -rf btbn-ffmpeg.tar.xz /usr/lib/ffmpeg/7.0/doc /usr/lib/ffmpeg/7.0/bin/ffplay
 fi
 
 # ffmpeg -> arm64
 if [[ "${TARGETARCH}" == "arm64" ]]; then
-    mkdir -p /usr/lib/btbn-ffmpeg
-    wget -qO btbn-ffmpeg.tar.xz "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linuxarm64-gpl.tar.xz"
-    # "https://github.com/NickM-27/FFmpeg-Builds/releases/download/autobuild-2022-07-31-12-37/ffmpeg-n5.1-2-g915ef932a3-linuxarm64-gpl-5.1.tar.xz"
-    tar -xf btbn-ffmpeg.tar.xz -C /usr/lib/btbn-ffmpeg --strip-components 1
-    rm -rf btbn-ffmpeg.tar.xz /usr/lib/btbn-ffmpeg/doc /usr/lib/btbn-ffmpeg/bin/ffplay
+    mkdir -p /usr/lib/ffmpeg/5.0
+    mkdir -p /usr/lib/ffmpeg/7.0
+    wget -qO btbn-ffmpeg.tar.xz "https://github.com/NickM-27/FFmpeg-Builds/releases/download/autobuild-2022-07-31-12-37/ffmpeg-n5.1-2-g915ef932a3-linuxarm64-gpl-5.1.tar.xz"
+    tar -xf btbn-ffmpeg.tar.xz -C /usr/lib/ffmpeg/5.0 --strip-components 1
+    rm -rf btbn-ffmpeg.tar.xz /usr/lib/ffmpeg/5.0/doc /usr/lib/ffmpeg/5.0/bin/ffplay
+    wget -qO btbn-ffmpeg.tar.xz "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2024-09-13-12-57/ffmpeg-n7.0.2-17-gf705bc5b73-linuxarm64-gpl-7.0.tar.xz"
+    tar -xf btbn-ffmpeg.tar.xz -C /usr/lib/ffmpeg/7.0 --strip-components 1
+    rm -rf btbn-ffmpeg.tar.xz /usr/lib/ffmpeg/7.0/doc /usr/lib/ffmpeg/7.0/bin/ffplay
 fi
 
 # arch specific packages
@@ -60,11 +67,15 @@ if [[ "${TARGETARCH}" == "amd64" ]]; then
     echo 'deb https://deb.debian.org/debian bookworm main contrib non-free' >/etc/apt/sources.list.d/debian-bookworm.list
     apt-get -qq update
     apt-get -qq install --no-install-recommends --no-install-suggests -y \
-        intel-opencl-icd \
-        mesa-va-drivers radeontop libva-drm2 intel-media-va-driver-non-free i965-va-driver libmfx1 intel-gpu-tools
+        intel-opencl-icd intel-media-va-driver-non-free i965-va-driver \
+        libmfx-gen1.2 libmfx1 onevpl-tools intel-gpu-tools \
+        libva-drm2 \
+        mesa-va-drivers radeontop
+
     # something about this dependency requires it to be installed in a separate call rather than in the line above
     apt-get -qq install --no-install-recommends --no-install-suggests -y \
         i965-va-driver-shaders
+
     rm -f /etc/apt/sources.list.d/debian-bookworm.list
 fi
 
@@ -72,6 +83,10 @@ if [[ "${TARGETARCH}" == "arm64" ]]; then
     apt-get -qq install --no-install-recommends --no-install-suggests -y \
         libva-drm2 mesa-va-drivers
 fi
+
+# install vulkan
+apt-get -qq install --no-install-recommends --no-install-suggests -y \
+    libvulkan1 mesa-vulkan-drivers
 
 apt-get purge gnupg apt-transport-https xz-utils -y
 apt-get clean autoclean -y

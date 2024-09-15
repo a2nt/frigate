@@ -15,7 +15,7 @@ import cv2
 import numpy as np
 
 from frigate.comms.config_updater import ConfigSubscriber
-from frigate.config import BirdseyeModeEnum, FrigateConfig
+from frigate.config import BirdseyeModeEnum, FfmpegConfig, FrigateConfig
 from frigate.const import BASE_DIR, BIRDSEYE_PIPE
 from frigate.util.image import (
     SharedMemoryFrameManager,
@@ -112,7 +112,7 @@ class Canvas:
 class FFMpegConverter(threading.Thread):
     def __init__(
         self,
-        camera: str,
+        ffmpeg: FfmpegConfig,
         input_queue: queue.Queue,
         stop_event: mp.Event,
         in_width: int,
@@ -123,8 +123,8 @@ class FFMpegConverter(threading.Thread):
         birdseye_rtsp: bool = False,
     ):
         threading.Thread.__init__(self)
-        self.name = f"{camera}_output_converter"
-        self.camera = camera
+        self.name = "birdseye_output_converter"
+        self.camera = "birdseye"
         self.input_queue = input_queue
         self.stop_event = stop_event
         self.bd_pipe = None
@@ -133,7 +133,7 @@ class FFMpegConverter(threading.Thread):
             self.recreate_birdseye_pipe()
 
         ffmpeg_cmd = [
-            "ffmpeg",
+            ffmpeg.ffmpeg_path,
             "-threads",
             "1",
             "-f",
@@ -357,16 +357,15 @@ class BirdsEyeFrameManager:
             frame = None
             channel_dims = None
         else:
-            try:
-                frame = self.frame_manager.get(
-                    f"{camera}{frame_time}", self.config.cameras[camera].frame_shape_yuv
-                )
-            except FileNotFoundError:
-                # TODO: better frame management would prevent this edge case
-                logger.warning(
-                    f"Unable to copy frame {camera}{frame_time} to birdseye."
-                )
+            frame_id = f"{camera}{frame_time}"
+            frame = self.frame_manager.get(
+                frame_id, self.config.cameras[camera].frame_shape_yuv
+            )
+
+            if frame is None:
+                logger.debug(f"Unable to copy frame {camera}{frame_time} to birdseye.")
                 return
+
             channel_dims = self.cameras[camera]["channel_dims"]
 
         copy_yuv_to_position(
@@ -376,6 +375,8 @@ class BirdsEyeFrameManager:
             frame,
             channel_dims,
         )
+
+        self.frame_manager.close(frame_id)
 
     def camera_active(self, mode, object_box_count, motion_box_count):
         if mode == BirdseyeModeEnum.continuous:
@@ -718,14 +719,13 @@ class Birdseye:
     def __init__(
         self,
         config: FrigateConfig,
-        frame_manager: SharedMemoryFrameManager,
         stop_event: mp.Event,
         websocket_server,
     ) -> None:
         self.config = config
         self.input = queue.Queue(maxsize=10)
         self.converter = FFMpegConverter(
-            "birdseye",
+            config.ffmpeg,
             self.input,
             stop_event,
             config.birdseye.width,
@@ -738,6 +738,7 @@ class Birdseye:
         self.broadcaster = BroadcastThread(
             "birdseye", self.converter, websocket_server, stop_event
         )
+        frame_manager = SharedMemoryFrameManager()
         self.birdseye_manager = BirdsEyeFrameManager(config, frame_manager, stop_event)
         self.config_subscriber = ConfigSubscriber("config/birdseye/")
 

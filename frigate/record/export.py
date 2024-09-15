@@ -10,10 +10,11 @@ import subprocess as sp
 import threading
 from enum import Enum
 from pathlib import Path
+from typing import Optional
 
 from peewee import DoesNotExist
 
-from frigate.config import FrigateConfig
+from frigate.config import FfmpegConfig, FrigateConfig
 from frigate.const import (
     CACHE_DIR,
     CLIPS_DIR,
@@ -49,7 +50,8 @@ class RecordingExporter(threading.Thread):
         self,
         config: FrigateConfig,
         camera: str,
-        name: str,
+        name: Optional[str],
+        image: Optional[str],
         start_time: int,
         end_time: int,
         playback_factor: PlaybackFactorEnum,
@@ -58,6 +60,7 @@ class RecordingExporter(threading.Thread):
         self.config = config
         self.camera = camera
         self.user_provided_name = name
+        self.user_provided_image = image
         self.start_time = start_time
         self.end_time = end_time
         self.playback_factor = playback_factor
@@ -71,6 +74,12 @@ class RecordingExporter(threading.Thread):
 
     def save_thumbnail(self, id: str) -> str:
         thumb_path = os.path.join(CLIPS_DIR, f"export/{id}.webp")
+
+        if self.user_provided_image is not None and os.path.isfile(
+            self.user_provided_image
+        ):
+            shutil.copy(self.user_provided_image, thumb_path)
+            return thumb_path
 
         if (
             self.start_time
@@ -107,7 +116,7 @@ class RecordingExporter(threading.Thread):
             minutes = int(diff / 60)
             seconds = int(diff % 60)
             ffmpeg_cmd = [
-                "ffmpeg",
+                self.config.ffmpeg.ffmpeg_path,
                 "-hide_banner",
                 "-loglevel",
                 "warning",
@@ -221,11 +230,12 @@ class RecordingExporter(threading.Thread):
 
         if self.playback_factor == PlaybackFactorEnum.realtime:
             ffmpeg_cmd = (
-                f"ffmpeg -hide_banner {ffmpeg_input} -c copy -movflags +faststart {video_path}"
+                f"{self.config.ffmpeg.ffmpeg_path} -hide_banner {ffmpeg_input} -c copy -movflags +faststart {video_path}"
             ).split(" ")
         elif self.playback_factor == PlaybackFactorEnum.timelapse_25x:
             ffmpeg_cmd = (
                 parse_preset_hardware_acceleration_encode(
+                    self.config.ffmpeg.ffmpeg_path,
                     self.config.ffmpeg.hwaccel_args,
                     f"{TIMELAPSE_DATA_INPUT_ARGS} {ffmpeg_input}",
                     f"{self.config.cameras[self.camera].record.export.timelapse_args} -movflags +faststart {video_path}",
@@ -258,7 +268,7 @@ class RecordingExporter(threading.Thread):
         logger.debug(f"Finished exporting {video_path}")
 
 
-def migrate_exports(camera_names: list[str]):
+def migrate_exports(ffmpeg: FfmpegConfig, camera_names: list[str]):
     Path(os.path.join(CLIPS_DIR, "export")).mkdir(exist_ok=True)
 
     exports = []
@@ -277,7 +287,7 @@ def migrate_exports(camera_names: list[str]):
         )  # use jpg because webp encoder can't get quality low enough
 
         ffmpeg_cmd = [
-            "ffmpeg",
+            ffmpeg.ffmpeg_path,
             "-hide_banner",
             "-loglevel",
             "warning",

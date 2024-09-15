@@ -15,7 +15,7 @@ import {
   SegmentedReviewData,
 } from "@/types/review";
 import EventView from "@/views/events/EventView";
-import { RecordingView } from "@/views/events/RecordingView";
+import { RecordingView } from "@/views/recording/RecordingView";
 import axios from "axios";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
@@ -54,6 +54,8 @@ export default function Events() {
         }
       })
       .catch(() => {});
+
+    return true;
   });
 
   const [startTime, setStartTime] = useState<number>();
@@ -71,6 +73,30 @@ export default function Events() {
   const [reviewFilter, setReviewFilter, reviewSearchParams] =
     useApiFilter<ReviewFilter>();
 
+  useSearchEffect("cameras", (cameras: string) => {
+    setReviewFilter({
+      ...reviewFilter,
+      cameras: cameras.includes(",") ? cameras.split(",") : [cameras],
+    });
+    return true;
+  });
+
+  useSearchEffect("labels", (labels: string) => {
+    setReviewFilter({
+      ...reviewFilter,
+      labels: labels.includes(",") ? labels.split(",") : [labels],
+    });
+    return true;
+  });
+
+  useSearchEffect("zones", (zones: string) => {
+    setReviewFilter({
+      ...reviewFilter,
+      zones: zones.includes(",") ? zones.split(",") : [zones],
+    });
+    return true;
+  });
+
   useSearchEffect("group", (reviewGroup) => {
     if (config && reviewGroup && reviewGroup != "default") {
       const group = config.camera_groups[reviewGroup];
@@ -83,7 +109,11 @@ export default function Events() {
           cameras: group.cameras,
         });
       }
+
+      return true;
     }
+
+    return false;
   });
 
   const onUpdateFilter = useCallback(

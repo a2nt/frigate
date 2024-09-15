@@ -5,7 +5,11 @@ import os
 from enum import Enum
 from typing import Any
 
-from frigate.const import FFMPEG_HWACCEL_NVIDIA, FFMPEG_HWACCEL_VAAPI
+from frigate.const import (
+    FFMPEG_HWACCEL_NVIDIA,
+    FFMPEG_HWACCEL_VAAPI,
+    FFMPEG_HWACCEL_VULKAN,
+)
 from frigate.util.services import vainfo_hwaccel
 from frigate.version import VERSION
 
@@ -45,12 +49,12 @@ class LibvaGpuSelector:
 
 FPS_VFR_PARAM = (
     "-fps_mode vfr"
-    if int(os.getenv("LIBAVFORMAT_VERSION_MAJOR", "59")) >= 59
+    if int(os.getenv("LIBAVFORMAT_VERSION_MAJOR", "59") or "59") >= 59
     else "-vsync 2"
 )
 TIMEOUT_PARAM = (
     "-timeout"
-    if int(os.getenv("LIBAVFORMAT_VERSION_MAJOR", "59")) >= 59
+    if int(os.getenv("LIBAVFORMAT_VERSION_MAJOR", "59") or "59") >= 59
     else "-stimeout"
 )
 
@@ -71,6 +75,8 @@ PRESETS_HW_ACCEL_DECODE = {
     "preset-jetson-h265": "-c:v hevc_nvmpi -resize {1}x{2}",
     "preset-rk-h264": "-hwaccel rkmpp -hwaccel_output_format drm_prime",
     "preset-rk-h265": "-hwaccel rkmpp -hwaccel_output_format drm_prime",
+    # experimental presets
+    FFMPEG_HWACCEL_VULKAN: "-hwaccel vulkan -init_hw_device vulkan=gpu:0 -filter_hw_device gpu -hwaccel_output_format vulkan",
 }
 PRESETS_HW_ACCEL_DECODE["preset-nvidia-h264"] = PRESETS_HW_ACCEL_DECODE[
     FFMPEG_HWACCEL_NVIDIA
@@ -85,7 +91,7 @@ PRESETS_HW_ACCEL_DECODE["preset-nvidia-mjpeg"] = PRESETS_HW_ACCEL_DECODE[
 PRESETS_HW_ACCEL_SCALE = {
     "preset-rpi-64-h264": "-r {0} -vf fps={0},scale={1}:{2}",
     "preset-rpi-64-h265": "-r {0} -vf fps={0},scale={1}:{2}",
-    FFMPEG_HWACCEL_VAAPI: "-r {0} -vf fps={0},scale_vaapi=w={1}:h={2}:format=nv12,hwdownload,format=nv12,format=yuv420p",
+    FFMPEG_HWACCEL_VAAPI: "-r {0} -vf fps={0},scale_vaapi=w={1}:h={2},hwdownload,eq=gamma=1.05",
     "preset-intel-qsv-h264": "-r {0} -vf vpp_qsv=framerate={0}:w={1}:h={2}:format=nv12,hwdownload,format=nv12,format=yuv420p",
     "preset-intel-qsv-h265": "-r {0} -vf vpp_qsv=framerate={0}:w={1}:h={2}:format=nv12,hwdownload,format=nv12,format=yuv420p",
     FFMPEG_HWACCEL_NVIDIA: "-r {0} -vf fps={0},scale_cuda=w={1}:h={2}:format=nv12,hwdownload,format=nv12,format=yuv420p",
@@ -94,6 +100,8 @@ PRESETS_HW_ACCEL_SCALE = {
     "preset-rk-h264": "-r {0} -vf scale_rkrga=w={1}:h={2}:format=yuv420p:force_original_aspect_ratio=0,hwmap=mode=read,format=yuv420p",
     "preset-rk-h265": "-r {0} -vf scale_rkrga=w={1}:h={2}:format=yuv420p:force_original_aspect_ratio=0,hwmap=mode=read,format=yuv420p",
     "default": "-r {0} -vf fps={0},scale={1}:{2}",
+    # experimental presets
+    FFMPEG_HWACCEL_VULKAN: "-r {0} -vf fps={0},hwupload,scale_vulkan=w={1}:h={2},hwdownload",
 }
 PRESETS_HW_ACCEL_SCALE["preset-nvidia-h264"] = PRESETS_HW_ACCEL_SCALE[
     FFMPEG_HWACCEL_NVIDIA
@@ -103,17 +111,17 @@ PRESETS_HW_ACCEL_SCALE["preset-nvidia-h265"] = PRESETS_HW_ACCEL_SCALE[
 ]
 
 PRESETS_HW_ACCEL_ENCODE_BIRDSEYE = {
-    "preset-rpi-64-h264": "ffmpeg -hide_banner {0} -c:v h264_v4l2m2m {1}",
-    "preset-rpi-64-h265": "ffmpeg -hide_banner {0} -c:v hevc_v4l2m2m {1}",
-    FFMPEG_HWACCEL_VAAPI: "ffmpeg -hide_banner -hwaccel vaapi -hwaccel_output_format vaapi -hwaccel_device {2} {0} -c:v h264_vaapi -g 50 -bf 0 -profile:v high -level:v 4.1 -sei:v 0 -an -vf format=vaapi|nv12,hwupload {1}",
-    "preset-intel-qsv-h264": "ffmpeg -hide_banner {0} -c:v h264_qsv -g 50 -bf 0 -profile:v high -level:v 4.1 -async_depth:v 1 {1}",
-    "preset-intel-qsv-h265": "ffmpeg -hide_banner {0} -c:v h264_qsv -g 50 -bf 0 -profile:v high -level:v 4.1 -async_depth:v 1 {1}",
-    FFMPEG_HWACCEL_NVIDIA: "ffmpeg -hide_banner {0} -c:v h264_nvenc -g 50 -profile:v high -level:v auto -preset:v p2 -tune:v ll {1}",
-    "preset-jetson-h264": "ffmpeg -hide_banner {0} -c:v h264_nvmpi -profile high {1}",
-    "preset-jetson-h265": "ffmpeg -hide_banner {0} -c:v h264_nvmpi -profile high {1}",
-    "preset-rk-h264": "ffmpeg -hide_banner {0} -c:v h264_rkmpp -profile:v high {1}",
-    "preset-rk-h265": "ffmpeg -hide_banner {0} -c:v hevc_rkmpp -profile:v high {1}",
-    "default": "ffmpeg -hide_banner {0} -c:v libx264 -g 50 -profile:v high -level:v 4.1 -preset:v superfast -tune:v zerolatency {1}",
+    "preset-rpi-64-h264": "{0} -hide_banner {1} -c:v h264_v4l2m2m {2}",
+    "preset-rpi-64-h265": "{0} -hide_banner {1} -c:v hevc_v4l2m2m {2}",
+    FFMPEG_HWACCEL_VAAPI: "{0} -hide_banner -hwaccel vaapi -hwaccel_output_format vaapi -hwaccel_device {3} {1} -c:v h264_vaapi -g 50 -bf 0 -profile:v high -level:v 4.1 -sei:v 0 -an -vf format=vaapi|nv12,hwupload {2}",
+    "preset-intel-qsv-h264": "{0} -hide_banner {1} -c:v h264_qsv -g 50 -bf 0 -profile:v high -level:v 4.1 -async_depth:v 1 {2}",
+    "preset-intel-qsv-h265": "{0} -hide_banner {1} -c:v h264_qsv -g 50 -bf 0 -profile:v high -level:v 4.1 -async_depth:v 1 {2}",
+    FFMPEG_HWACCEL_NVIDIA: "{0} -hide_banner {1} -c:v h264_nvenc -g 50 -profile:v high -level:v auto -preset:v p2 -tune:v ll {2}",
+    "preset-jetson-h264": "{0} -hide_banner {1} -c:v h264_nvmpi -profile high {2}",
+    "preset-jetson-h265": "{0} -hide_banner {1} -c:v h264_nvmpi -profile high {2}",
+    "preset-rk-h264": "{0} -hide_banner {1} -c:v h264_rkmpp -profile:v high {2}",
+    "preset-rk-h265": "{0} -hide_banner {1} -c:v hevc_rkmpp -profile:v high {2}",
+    "default": "{0} -hide_banner {1} -c:v libx264 -g 50 -profile:v high -level:v 4.1 -preset:v superfast -tune:v zerolatency {2}",
 }
 PRESETS_HW_ACCEL_ENCODE_BIRDSEYE["preset-nvidia-h264"] = (
     PRESETS_HW_ACCEL_ENCODE_BIRDSEYE[FFMPEG_HWACCEL_NVIDIA]
@@ -123,18 +131,18 @@ PRESETS_HW_ACCEL_ENCODE_BIRDSEYE["preset-nvidia-h265"] = (
 )
 
 PRESETS_HW_ACCEL_ENCODE_TIMELAPSE = {
-    "preset-rpi-64-h264": "ffmpeg -hide_banner {0} -c:v h264_v4l2m2m -pix_fmt yuv420p {1}",
-    "preset-rpi-64-h265": "ffmpeg -hide_banner {0} -c:v hevc_v4l2m2m -pix_fmt yuv420p {1}",
-    FFMPEG_HWACCEL_VAAPI: "ffmpeg -hide_banner -hwaccel vaapi -hwaccel_output_format vaapi -hwaccel_device {2} {0} -c:v h264_vaapi {1}",
-    "preset-intel-qsv-h264": "ffmpeg -hide_banner {0} -c:v h264_qsv -profile:v high -level:v 4.1 -async_depth:v 1 {1}",
-    "preset-intel-qsv-h265": "ffmpeg -hide_banner {0} -c:v hevc_qsv -profile:v high -level:v 4.1 -async_depth:v 1 {1}",
-    FFMPEG_HWACCEL_NVIDIA: "ffmpeg -hide_banner -hwaccel cuda -hwaccel_output_format cuda -extra_hw_frames 8 {0} -c:v h264_nvenc {1}",
-    "preset-nvidia-h265": "ffmpeg -hide_banner -hwaccel cuda -hwaccel_output_format cuda -extra_hw_frames 8 {0} -c:v hevc_nvenc {1}",
-    "preset-jetson-h264": "ffmpeg -hide_banner {0} -c:v h264_nvmpi -profile high {1}",
-    "preset-jetson-h265": "ffmpeg -hide_banner {0} -c:v hevc_nvmpi -profile high {1}",
-    "preset-rk-h264": "ffmpeg -hide_banner {0} -c:v h264_rkmpp -profile:v high {1}",
-    "preset-rk-h265": "ffmpeg -hide_banner {0} -c:v hevc_rkmpp -profile:v high {1}",
-    "default": "ffmpeg -hide_banner {0} -c:v libx264 -preset:v ultrafast -tune:v zerolatency {1}",
+    "preset-rpi-64-h264": "{0} -hide_banner {1} -c:v h264_v4l2m2m -pix_fmt yuv420p {2}",
+    "preset-rpi-64-h265": "{0} -hide_banner {1} -c:v hevc_v4l2m2m -pix_fmt yuv420p {2}",
+    FFMPEG_HWACCEL_VAAPI: "{0} -hide_banner -hwaccel vaapi -hwaccel_output_format vaapi -hwaccel_device {3} {1} -c:v h264_vaapi {2}",
+    "preset-intel-qsv-h264": "{0} -hide_banner {1} -c:v h264_qsv -profile:v high -level:v 4.1 -async_depth:v 1 {2}",
+    "preset-intel-qsv-h265": "{0} -hide_banner {1} -c:v hevc_qsv -profile:v high -level:v 4.1 -async_depth:v 1 {2}",
+    FFMPEG_HWACCEL_NVIDIA: "{0} -hide_banner -hwaccel cuda -hwaccel_output_format cuda -extra_hw_frames 8 {1} -c:v h264_nvenc {2}",
+    "preset-nvidia-h265": "{0} -hide_banner -hwaccel cuda -hwaccel_output_format cuda -extra_hw_frames 8 {1} -c:v hevc_nvenc {2}",
+    "preset-jetson-h264": "{0} -hide_banner {1} -c:v h264_nvmpi -profile high {2}",
+    "preset-jetson-h265": "{0} -hide_banner {1} -c:v hevc_nvmpi -profile high {2}",
+    "preset-rk-h264": "{0} -hide_banner {1} -c:v h264_rkmpp -profile:v high {2}",
+    "preset-rk-h265": "{0} -hide_banner {1} -c:v hevc_rkmpp -profile:v high {2}",
+    "default": "{0} -hide_banner {1} -c:v libx264 -preset:v ultrafast -tune:v zerolatency {2}",
 }
 PRESETS_HW_ACCEL_ENCODE_TIMELAPSE["preset-nvidia-h264"] = (
     PRESETS_HW_ACCEL_ENCODE_TIMELAPSE[FFMPEG_HWACCEL_NVIDIA]
@@ -142,7 +150,7 @@ PRESETS_HW_ACCEL_ENCODE_TIMELAPSE["preset-nvidia-h264"] = (
 
 # encoding of previews is only done on CPU due to comparable encode times and better quality from libx264
 PRESETS_HW_ACCEL_ENCODE_PREVIEW = {
-    "default": "ffmpeg -hide_banner {0} -c:v libx264 -profile:v baseline -preset:v ultrafast {1}",
+    "default": "{0} -hide_banner {1} -c:v libx264 -profile:v baseline -preset:v ultrafast {2}",
 }
 
 
@@ -189,7 +197,11 @@ class EncodeTypeEnum(str, Enum):
 
 
 def parse_preset_hardware_acceleration_encode(
-    arg: Any, input: str, output: str, type: EncodeTypeEnum = EncodeTypeEnum.birdseye
+    ffmpeg_path: str,
+    arg: Any,
+    input: str,
+    output: str,
+    type: EncodeTypeEnum = EncodeTypeEnum.birdseye,
 ) -> str:
     """Return the correct scaling preset or default preset if none is set."""
     if type == EncodeTypeEnum.birdseye:
@@ -207,6 +219,7 @@ def parse_preset_hardware_acceleration_encode(
         arg = "default"
 
     return arg_map.get(arg, arg_map["default"]).format(
+        ffmpeg_path,
         input,
         output,
         _gpu_selector.get_selected_gpu(),

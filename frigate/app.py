@@ -22,11 +22,12 @@ from pydantic import ValidationError
 from frigate.api.app import create_app
 from frigate.api.auth import hash_password
 from frigate.comms.config_updater import ConfigPublisher
-from frigate.comms.detections_updater import DetectionProxy
 from frigate.comms.dispatcher import Communicator, Dispatcher
 from frigate.comms.inter_process import InterProcessCommunicator
 from frigate.comms.mqtt import MqttClient
+from frigate.comms.webpush import WebPushClient
 from frigate.comms.ws import WebSocketClient
+from frigate.comms.zmq_proxy import ZmqProxy
 from frigate.config import FrigateConfig
 from frigate.const import (
     CACHE_DIR,
@@ -37,6 +38,7 @@ from frigate.const import (
     MODEL_CACHE_DIR,
     RECORD_DIR,
 )
+from frigate.embeddings import EmbeddingsContext, manage_embeddings
 from frigate.events.audio import listen_to_audio
 from frigate.events.cleanup import EventCleanup
 from frigate.events.external import ExternalEventProcessor
@@ -314,7 +316,25 @@ class FrigateApp:
         self.review_segment_process = review_segment_process
         review_segment_process.start()
         self.processes["review_segment"] = review_segment_process.pid or 0
-        logger.info(f"Recording process started: {review_segment_process.pid}")
+        logger.info(f"Review process started: {review_segment_process.pid}")
+
+    def init_embeddings_manager(self) -> None:
+        if not self.config.semantic_search.enabled:
+            self.embeddings = None
+            return
+
+        # Create a client for other processes to use
+        self.embeddings = EmbeddingsContext()
+        embedding_process = mp.Process(
+            target=manage_embeddings,
+            name="embeddings_manager",
+            args=(self.config,),
+        )
+        embedding_process.daemon = True
+        self.embedding_process = embedding_process
+        embedding_process.start()
+        self.processes["embeddings"] = embedding_process.pid or 0
+        logger.info(f"Embedding process started: {embedding_process.pid}")
 
     def bind_database(self) -> None:
         """Bind db to the main process."""
@@ -352,7 +372,7 @@ class FrigateApp:
             except PermissionError:
                 logger.error("Unable to write to /config to save export state")
 
-            migrate_exports(self.config.cameras.keys())
+            migrate_exports(self.config.ffmpeg, self.config.cameras.keys())
 
     def init_external_event_processor(self) -> None:
         self.external_event_processor = ExternalEventProcessor(self.config)
@@ -360,12 +380,13 @@ class FrigateApp:
     def init_inter_process_communicator(self) -> None:
         self.inter_process_communicator = InterProcessCommunicator()
         self.inter_config_updater = ConfigPublisher()
-        self.inter_detection_proxy = DetectionProxy()
+        self.inter_zmq_proxy = ZmqProxy()
 
     def init_web_server(self) -> None:
         self.flask_app = create_app(
             self.config,
             self.db,
+            self.embeddings,
             self.detected_frames_processor,
             self.storage_maintainer,
             self.onvif_controller,
@@ -381,6 +402,9 @@ class FrigateApp:
 
         if self.config.mqtt.enabled:
             comms.append(MqttClient(self.config))
+
+        if self.config.notifications.enabled_in_config:
+            comms.append(WebPushClient(self.config))
 
         comms.append(WebSocketClient(self.config))
         comms.append(self.inter_process_communicator)
@@ -510,7 +534,7 @@ class FrigateApp:
             capture_process = mp.Process(
                 target=capture_camera,
                 name=f"camera_capture:{name}",
-                args=(name, config, self.camera_metrics[name]),
+                args=(name, config, self.shm_frame_count, self.camera_metrics[name]),
             )
             capture_process.daemon = True
             self.camera_metrics[name]["capture_process"] = capture_process
@@ -574,19 +598,34 @@ class FrigateApp:
         self.frigate_watchdog.start()
 
     def check_shm(self) -> None:
-        available_shm = round(shutil.disk_usage("/dev/shm").total / pow(2, 20), 1)
-        min_req_shm = 30
+        total_shm = round(shutil.disk_usage("/dev/shm").total / pow(2, 20), 1)
 
-        for _, camera in self.config.cameras.items():
-            min_req_shm += round(
-                (camera.detect.width * camera.detect.height * 1.5 * 9 + 270480)
-                / 1048576,
-                1,
-            )
+        # required for log files + nginx cache
+        min_req_shm = 40 + 10
 
-        if available_shm < min_req_shm:
+        if self.config.birdseye.restream:
+            min_req_shm += 8
+
+        available_shm = total_shm - min_req_shm
+        cam_total_frame_size = 0
+
+        for camera in self.config.cameras.values():
+            if camera.enabled:
+                cam_total_frame_size += round(
+                    (camera.detect.width * camera.detect.height * 1.5 + 270480)
+                    / 1048576,
+                    1,
+                )
+
+        self.shm_frame_count = min(50, int(available_shm / (cam_total_frame_size)))
+
+        logger.debug(
+            f"Calculated total camera size {available_shm} / {cam_total_frame_size} :: {self.shm_frame_count} frames for each camera in SHM"
+        )
+
+        if self.shm_frame_count < 10:
             logger.warning(
-                f"The current SHM size of {available_shm}MB is too small, recommend increasing it to at least {min_req_shm}MB."
+                f"The current SHM size of {total_shm}MB is too small, recommend increasing it to at least {round(min_req_shm + cam_total_frame_size)}MB."
             )
 
     def init_auth(self) -> None:
@@ -675,6 +714,7 @@ class FrigateApp:
             self.init_onvif()
             self.init_recording_manager()
             self.init_review_segment_manager()
+            self.init_embeddings_manager()
             self.init_go2rtc()
             self.bind_database()
             self.check_db_data_migrations()
@@ -690,6 +730,7 @@ class FrigateApp:
         self.init_historical_regions()
         self.start_detected_frames_processor()
         self.start_camera_processors()
+        self.check_shm()
         self.start_camera_capture_processes()
         self.start_audio_processors()
         self.start_storage_maintainer()
@@ -701,7 +742,6 @@ class FrigateApp:
         self.start_event_cleanup()
         self.start_record_cleanup()
         self.start_watchdog()
-        self.check_shm()
         self.init_auth()
 
         # Flask only listens for SIGINT, so we need to catch SIGTERM and send SIGINT
@@ -791,10 +831,14 @@ class FrigateApp:
         self.frigate_watchdog.join()
         self.db.stop()
 
+        # Save embeddings stats to disk
+        if self.embeddings:
+            self.embeddings.save_stats()
+
         # Stop Communicators
         self.inter_process_communicator.stop()
         self.inter_config_updater.stop()
-        self.inter_detection_proxy.stop()
+        self.inter_zmq_proxy.stop()
 
         while len(self.detection_shms) > 0:
             shm = self.detection_shms.pop()

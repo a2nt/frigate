@@ -1,36 +1,24 @@
 import { Button } from "../ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import useSWR from "swr";
-import { CameraGroupConfig, FrigateConfig } from "@/types/frigateConfig";
-import { useCallback, useMemo, useState } from "react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "../ui/dropdown-menu";
+import { FrigateConfig } from "@/types/frigateConfig";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { DropdownMenuSeparator } from "../ui/dropdown-menu";
 import { ReviewFilter, ReviewSeverity, ReviewSummary } from "@/types/review";
 import { getEndOfDayTimestamp } from "@/utils/dateUtil";
-import { useFormattedTimestamp } from "@/hooks/use-date-utils";
-import {
-  FaCalendarAlt,
-  FaCheckCircle,
-  FaFilter,
-  FaRunning,
-  FaVideo,
-} from "react-icons/fa";
+import { FaCheckCircle, FaFilter, FaRunning } from "react-icons/fa";
 import { isDesktop, isMobile } from "react-device-detect";
 import { Drawer, DrawerContent, DrawerTrigger } from "../ui/drawer";
 import { Switch } from "../ui/switch";
 import { Label } from "../ui/label";
-import ReviewActivityCalendar from "../overlay/ReviewActivityCalendar";
 import MobileReviewSettingsDrawer, {
   DrawerFeatures,
 } from "../overlay/MobileReviewSettingsDrawer";
 import useOptimisticState from "@/hooks/use-optimistic-state";
 import FilterSwitch from "./FilterSwitch";
 import { FilterList } from "@/types/filter";
+import CalendarFilterButton from "./CalendarFilterButton";
+import { CamerasFilterButton } from "./CamerasFilterButton";
 
 const REVIEW_FILTERS = [
   "cameras",
@@ -260,169 +248,6 @@ export default function ReviewFilterGroup({
   );
 }
 
-type CameraFilterButtonProps = {
-  allCameras: string[];
-  groups: [string, CameraGroupConfig][];
-  selectedCameras: string[] | undefined;
-  updateCameraFilter: (cameras: string[] | undefined) => void;
-};
-export function CamerasFilterButton({
-  allCameras,
-  groups,
-  selectedCameras,
-  updateCameraFilter,
-}: CameraFilterButtonProps) {
-  const [open, setOpen] = useState(false);
-  const [currentCameras, setCurrentCameras] = useState<string[] | undefined>(
-    selectedCameras,
-  );
-
-  const trigger = (
-    <Button
-      className="flex items-center gap-2 capitalize"
-      variant={selectedCameras?.length == undefined ? "default" : "select"}
-      size="sm"
-    >
-      <FaVideo
-        className={`${(selectedCameras?.length ?? 0) >= 1 ? "text-selected-foreground" : "text-secondary-foreground"}`}
-      />
-      <div
-        className={`hidden md:block ${selectedCameras?.length ? "text-selected-foreground" : "text-primary"}`}
-      >
-        {selectedCameras == undefined
-          ? "All Cameras"
-          : `${selectedCameras.includes("birdseye") ? selectedCameras.length - 1 : selectedCameras.length} Camera${selectedCameras.length !== 1 ? "s" : ""}`}
-      </div>
-    </Button>
-  );
-  const content = (
-    <>
-      {isMobile && (
-        <>
-          <DropdownMenuLabel className="flex justify-center">
-            Cameras
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator />
-        </>
-      )}
-      <div className="scrollbar-container h-auto max-h-[80dvh] overflow-y-auto overflow-x-hidden p-4">
-        <FilterSwitch
-          isChecked={currentCameras == undefined}
-          label="All Cameras"
-          onCheckedChange={(isChecked) => {
-            if (isChecked) {
-              setCurrentCameras(undefined);
-            }
-          }}
-        />
-        {groups.length > 0 && (
-          <>
-            <DropdownMenuSeparator className="mt-2" />
-            {groups.map(([name, conf]) => {
-              return (
-                <div
-                  key={name}
-                  className="w-full cursor-pointer rounded-lg px-2 py-1.5 text-sm capitalize text-primary hover:bg-muted"
-                  onClick={() => setCurrentCameras([...conf.cameras])}
-                >
-                  {name}
-                </div>
-              );
-            })}
-          </>
-        )}
-        <DropdownMenuSeparator className="my-2" />
-        <div className="flex flex-col gap-2.5">
-          {allCameras.map((item) => (
-            <FilterSwitch
-              key={item}
-              isChecked={currentCameras?.includes(item) ?? false}
-              label={item.replaceAll("_", " ")}
-              onCheckedChange={(isChecked) => {
-                if (isChecked) {
-                  const updatedCameras = currentCameras
-                    ? [...currentCameras]
-                    : [];
-
-                  updatedCameras.push(item);
-                  setCurrentCameras(updatedCameras);
-                } else {
-                  const updatedCameras = currentCameras
-                    ? [...currentCameras]
-                    : [];
-
-                  // can not deselect the last item
-                  if (updatedCameras.length > 1) {
-                    updatedCameras.splice(updatedCameras.indexOf(item), 1);
-                    setCurrentCameras(updatedCameras);
-                  }
-                }
-              }}
-            />
-          ))}
-        </div>
-      </div>
-      <DropdownMenuSeparator className="my-2" />
-      <div className="flex items-center justify-evenly p-2">
-        <Button
-          variant="select"
-          onClick={() => {
-            updateCameraFilter(currentCameras);
-            setOpen(false);
-          }}
-        >
-          Apply
-        </Button>
-        <Button
-          onClick={() => {
-            setCurrentCameras(undefined);
-            updateCameraFilter(undefined);
-          }}
-        >
-          Reset
-        </Button>
-      </div>
-    </>
-  );
-
-  if (isMobile) {
-    return (
-      <Drawer
-        open={open}
-        onOpenChange={(open) => {
-          if (!open) {
-            setCurrentCameras(selectedCameras);
-          }
-
-          setOpen(open);
-        }}
-      >
-        <DrawerTrigger asChild>{trigger}</DrawerTrigger>
-        <DrawerContent className="max-h-[75dvh] overflow-hidden">
-          {content}
-        </DrawerContent>
-      </Drawer>
-    );
-  }
-
-  return (
-    <DropdownMenu
-      modal={false}
-      open={open}
-      onOpenChange={(open) => {
-        if (!open) {
-          setCurrentCameras(selectedCameras);
-        }
-
-        setOpen(open);
-      }}
-    >
-      <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
-      <DropdownMenuContent>{content}</DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-
 type ShowReviewedFilterProps = {
   showReviewed: boolean;
   setShowReviewed: (reviewed: boolean) => void;
@@ -466,74 +291,6 @@ function ShowReviewFilter({
   );
 }
 
-type CalendarFilterButtonProps = {
-  reviewSummary?: ReviewSummary;
-  day?: Date;
-  updateSelectedDay: (day?: Date) => void;
-};
-function CalendarFilterButton({
-  reviewSummary,
-  day,
-  updateSelectedDay,
-}: CalendarFilterButtonProps) {
-  const selectedDate = useFormattedTimestamp(
-    day == undefined ? 0 : day?.getTime() / 1000 + 1,
-    "%b %-d",
-  );
-
-  const trigger = (
-    <Button
-      className="flex items-center gap-2"
-      variant={day == undefined ? "default" : "select"}
-      size="sm"
-    >
-      <FaCalendarAlt
-        className={`${day == undefined ? "text-secondary-foreground" : "text-selected-foreground"}`}
-      />
-      <div
-        className={`hidden md:block ${day == undefined ? "text-primary" : "text-selected-foreground"}`}
-      >
-        {day == undefined ? "Last 24 Hours" : selectedDate}
-      </div>
-    </Button>
-  );
-  const content = (
-    <>
-      <ReviewActivityCalendar
-        reviewSummary={reviewSummary}
-        selectedDay={day}
-        onSelect={updateSelectedDay}
-      />
-      <DropdownMenuSeparator />
-      <div className="flex items-center justify-center p-2">
-        <Button
-          onClick={() => {
-            updateSelectedDay(undefined);
-          }}
-        >
-          Reset
-        </Button>
-      </div>
-    </>
-  );
-
-  if (isMobile) {
-    return (
-      <Drawer>
-        <DrawerTrigger asChild>{trigger}</DrawerTrigger>
-        <DrawerContent>{content}</DrawerContent>
-      </Drawer>
-    );
-  }
-
-  return (
-    <Popover>
-      <PopoverTrigger asChild>{trigger}</PopoverTrigger>
-      <PopoverContent className="w-auto">{content}</PopoverContent>
-    </Popover>
-  );
-}
-
 type GeneralFilterButtonProps = {
   allLabels: string[];
   selectedLabels: string[] | undefined;
@@ -563,6 +320,15 @@ function GeneralFilterButton({
   const [currentZones, setCurrentZones] = useState<string[] | undefined>(
     selectedZones,
   );
+
+  // ui
+
+  useEffect(() => {
+    setCurrentLabels(selectedLabels);
+    setCurrentZones(selectedZones);
+    // only refresh when state changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedLabels, selectedZones]);
 
   const trigger = (
     <Button
@@ -713,6 +479,7 @@ export function GeneralFilterContent({
         <div className="my-2.5 flex flex-col gap-2.5">
           {allLabels.map((item) => (
             <FilterSwitch
+              key={item}
               label={item.replaceAll("_", " ")}
               isChecked={currentLabels?.includes(item) ?? false}
               onCheckedChange={(isChecked) => {
@@ -759,6 +526,7 @@ export function GeneralFilterContent({
             <div className="my-2.5 flex flex-col gap-2.5">
               {allZones.map((item) => (
                 <FilterSwitch
+                  key={item}
                   label={item.replaceAll("_", " ")}
                   isChecked={currentZones?.includes(item) ?? false}
                   onCheckedChange={(isChecked) => {

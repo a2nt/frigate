@@ -57,11 +57,7 @@ class ExternalEventProcessor:
         thumbnail = self._write_images(
             camera_config, label, event_id, draw, snapshot_frame
         )
-        end = (
-            now + duration + camera_config.record.events.post_capture
-            if duration is not None
-            else None
-        )
+        end = now + duration if duration is not None else None
 
         self.event_sender.publish(
             (
@@ -74,7 +70,7 @@ class ExternalEventProcessor:
                     "sub_label": sub_label,
                     "score": score,
                     "camera": camera,
-                    "start_time": now - camera_config.record.events.pre_capture,
+                    "start_time": now,
                     "end_time": end,
                     "thumbnail": thumbnail,
                     "has_clip": camera_config.record.enabled and include_recording,
@@ -86,7 +82,7 @@ class ExternalEventProcessor:
 
         if source_type == "api":
             self.event_camera[event_id] = camera
-            self.detection_updater.send_data(
+            self.detection_updater.publish(
                 (
                     camera,
                     now,
@@ -115,7 +111,7 @@ class ExternalEventProcessor:
         )
 
         if event_id in self.event_camera:
-            self.detection_updater.send_data(
+            self.detection_updater.publish(
                 (
                     self.event_camera[event_id],
                     end_time,

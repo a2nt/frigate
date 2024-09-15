@@ -7,6 +7,7 @@ import os
 import traceback
 from datetime import datetime, timedelta
 from functools import reduce
+from typing import Optional
 
 import requests
 from flask import Blueprint, Flask, current_app, jsonify, make_response, request
@@ -19,10 +20,12 @@ from frigate.api.auth import AuthBp, get_jwt_secret, limiter
 from frigate.api.event import EventBp
 from frigate.api.export import ExportBp
 from frigate.api.media import MediaBp
+from frigate.api.notification import NotificationBp
 from frigate.api.preview import PreviewBp
 from frigate.api.review import ReviewBp
 from frigate.config import FrigateConfig
 from frigate.const import CONFIG_DIR
+from frigate.embeddings import EmbeddingsContext
 from frigate.events.external import ExternalEventProcessor
 from frigate.models import Event, Timeline
 from frigate.ptz.onvif import OnvifController
@@ -46,11 +49,13 @@ bp.register_blueprint(MediaBp)
 bp.register_blueprint(PreviewBp)
 bp.register_blueprint(ReviewBp)
 bp.register_blueprint(AuthBp)
+bp.register_blueprint(NotificationBp)
 
 
 def create_app(
     frigate_config,
     database: SqliteQueueDatabase,
+    embeddings: Optional[EmbeddingsContext],
     detected_frames_processor,
     storage_maintainer: StorageMaintainer,
     onvif: OnvifController,
@@ -77,6 +82,7 @@ def create_app(
             database.close()
 
     app.frigate_config = frigate_config
+    app.embeddings = embeddings
     app.detected_frames_processor = detected_frames_processor
     app.storage_maintainer = storage_maintainer
     app.onvif = onvif
@@ -404,7 +410,7 @@ def ffprobe():
     output = []
 
     for path in paths:
-        ffprobe = ffprobe_stream(path.strip())
+        ffprobe = ffprobe_stream(current_app.frigate_config.ffmpeg, path.strip())
         output.append(
             {
                 "return_code": ffprobe.returncode,
@@ -446,10 +452,24 @@ def vainfo():
 
 @bp.route("/logs/<service>", methods=["GET"])
 def logs(service: str):
+    def download_logs(service_location: str):
+        try:
+            file = open(service_location, "r")
+            contents = file.read()
+            file.close()
+            return jsonify(contents)
+        except FileNotFoundError as e:
+            logger.error(e)
+            return make_response(
+                jsonify({"success": False, "message": "Could not find log file"}),
+                500,
+            )
+
     log_locations = {
         "frigate": "/dev/shm/logs/frigate/current",
         "go2rtc": "/dev/shm/logs/go2rtc/current",
         "nginx": "/dev/shm/logs/nginx/current",
+        "chroma": "/dev/shm/logs/chroma/current",
     }
     service_location = log_locations.get(service)
 
@@ -458,6 +478,9 @@ def logs(service: str):
             jsonify({"success": False, "message": "Not a valid service"}),
             404,
         )
+
+    if request.args.get("download", type=bool, default=False):
+        return download_logs(service_location)
 
     start = request.args.get("start", type=int, default=0)
     end = request.args.get("end", type=int)
